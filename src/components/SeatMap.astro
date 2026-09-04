@@ -111,7 +111,7 @@ const initialDay = FREE_DAYS.some((d) => d.value === requestedDay) ? requestedDa
 </div>
 
 <script>
-  import { VENUE, MAX_SEATS_PER_BOOKING, FREE_DAYS, seatLabel } from '../data/seating';
+  import { VENUE, MAX_SEATS_PER_BOOKING, FREE_DAYS, seatLabel, STAGE } from '../data/seating';
 
   const SVG_NS = 'http://www.w3.org/2000/svg';
   const COLOR = {
@@ -162,14 +162,14 @@ const initialDay = FREE_DAYS.some((d) => d.value === requestedDay) ? requestedDa
     seatEls.clear();
 
     const stage = document.createElementNS(SVG_NS, 'rect');
-    stage.setAttribute('x', '359');
-    stage.setAttribute('y', '50');
-    stage.setAttribute('width', '612');
-    stage.setAttribute('height', '40');
+    stage.setAttribute('x', String(STAGE.x));
+    stage.setAttribute('y', String(STAGE.y));
+    stage.setAttribute('width', String(STAGE.width));
+    stage.setAttribute('height', String(STAGE.height));
     stage.setAttribute('rx', '4');
     stage.setAttribute('fill', '#e2e6ea');
     svg.appendChild(stage);
-    addLabel('Сцена', 665, 74, 11);
+    addLabel('Сцена', STAGE.x + STAGE.width / 2, 74, 11);
 
     for (const section of VENUE) {
       for (const seat of section.seats) {

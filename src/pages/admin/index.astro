@@ -137,7 +137,7 @@ const authed = isAdminRequest(Astro.cookies);
 </Layout>
 
 <script>
-  import { VENUE, FREE_DAYS, TOTAL_SEAT_COUNT as TOTAL, seatLabel, type Section } from '../../data/seating';
+  import { VENUE, FREE_DAYS, TOTAL_SEAT_COUNT as TOTAL, seatLabel, STAGE, type Section } from '../../data/seating';
 
   const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -226,10 +226,10 @@ const authed = isAdminRequest(Astro.cookies);
       seatCircles.clear();
 
       const stage = document.createElementNS(SVG_NS, 'rect');
-      stage.setAttribute('x', '359');
-      stage.setAttribute('y', '50');
-      stage.setAttribute('width', '612');
-      stage.setAttribute('height', '40');
+      stage.setAttribute('x', String(STAGE.x));
+      stage.setAttribute('y', String(STAGE.y));
+      stage.setAttribute('width', String(STAGE.width));
+      stage.setAttribute('height', String(STAGE.height));
       stage.setAttribute('rx', '4');
       stage.setAttribute('fill', '#e2e6ea');
       svg.appendChild(stage);

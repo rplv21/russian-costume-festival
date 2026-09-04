@@ -767,6 +767,11 @@ const logbSeats: Seat[] = [
 
 export const VIEWBOX = { width: 1500, height: 900 };
 
+// Геометрический центр сцены — по центру viewBox (750), что совпадает с центром
+// масс всех 726 мест зала (~747.5). Раньше сцена рисовалась с x=359 (жёстко),
+// из-за чего визуально стояла заметно левее середины зала.
+export const STAGE = { x: 444, y: 50, width: 612, height: 40 };
+
 export const VENUE: Section[] = [
   { id: 'parter', label: 'Партер', seats: parterSeats },
   { id: 'amf', label: 'Амфитеатр', seats: amfSeats },

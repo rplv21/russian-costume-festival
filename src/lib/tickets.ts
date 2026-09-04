@@ -3,7 +3,7 @@ import fontkit from '@pdf-lib/fontkit';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { festival, contacts } from '../data/site';
-import { seatLabel, VENUE, VIEWBOX } from '../data/seating';
+import { seatLabel, VENUE, VIEWBOX, STAGE } from '../data/seating';
 
 const PROJECT_ROOT = process.cwd();
 
@@ -72,10 +72,10 @@ function drawMiniMap(
 
   // сцена
   page.drawRectangle({
-    x: toX(359),
-    y: toY(90),
-    width: 612 * scale,
-    height: 40 * scale,
+    x: toX(STAGE.x),
+    y: toY(STAGE.y + STAGE.height),
+    width: STAGE.width * scale,
+    height: STAGE.height * scale,
     color: STAGE_FILL,
   });
 

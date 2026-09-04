@@ -48,15 +48,17 @@ import PrivacyContent from './PrivacyContent.astro';
   </div>
 
   <div class="container footer-bottom">
-    <span>
-      © {festival.year} {festival.fullName} ·
-      <a href="#" class="privacy-modal-trigger">Политика конфиденциальности</a>
-    </span>
-    <span class="credit">
-      Сайт разработан и создан <a href={credits.developer.url} target="_blank" rel="noopener">{credits.developer.name}</a>.
-      Ответственный за маркетинг <a href={credits.marketing.url} target="_blank" rel="noopener">{credits.marketing.name}</a>
-      · <a href="/admin" class="admin-link">Панель администратора</a>
-    </span>
+    <div class="footer-bottom-text">
+      <span>
+        © {festival.year} {festival.fullName} ·
+        <a href="#" class="privacy-modal-trigger">Политика конфиденциальности</a>
+      </span>
+      <span class="credit">
+        Сайт разработан и создан <a href={credits.developer.url} target="_blank" rel="noopener">{credits.developer.name}</a>.
+        Ответственный за маркетинг <a href={credits.marketing.url} target="_blank" rel="noopener">{credits.marketing.name}</a>
+      </span>
+    </div>
+    <a href="/admin" class="admin-link">Панель администратора</a>
   </div>
 </footer>
 
@@ -283,10 +285,23 @@ import PrivacyContent from './PrivacyContent.astro';
     padding-block: 18px;
     display: flex;
     justify-content: space-between;
+    align-items: flex-start;
     flex-wrap: wrap;
-    gap: 10px;
+    gap: 10px 24px;
     font-size: 0.78rem;
     opacity: 0.65;
+  }
+  .footer-bottom-text {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1 1 480px;
+    min-width: 0;
+  }
+  .admin-link {
+    flex: 0 0 auto;
+    white-space: nowrap;
+    color: var(--color-white);
   }
   .credit a {
     color: var(--color-white);

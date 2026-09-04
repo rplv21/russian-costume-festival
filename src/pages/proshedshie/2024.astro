@@ -1,32 +1,240 @@
 ---
+import fs from 'node:fs';
+import path from 'node:path';
 import Layout from '../../layouts/Layout.astro';
-import { contacts } from '../../data/site';
+
+const galleryDir = path.resolve('public/gallery/2024/thumb');
+const files = fs.existsSync(galleryDir)
+  ? fs.readdirSync(galleryDir).filter((f) => f.toLowerCase().endsWith('.jpg')).sort()
+  : [];
+const photos = files.map((name) => ({
+  thumb: `/gallery/2024/thumb/${name}`,
+  full: `/gallery/2024/full/${name}`,
+}));
 ---
 
 <Layout
   title="Русский костюм 2024 — архив фестиваля"
-  description="Архив Всероссийского фестиваля «Русский костюм в городе Ярославле» 2024 года."
-  noindex
+  description="Фотоархив Всероссийского фестиваля «Русский костюм в городе Ярославле» 2024 года."
 >
-  <section class="section container stub">
+  <section class="section container">
     <p class="eyebrow">Прошедшие фестивали</p>
     <h1>Русский костюм 2024</h1>
-    <p class="lede">Материалы фестиваля 2024 года пока готовятся к публикации.</p>
-    <a href={contacts.vk.festival} target="_blank" rel="noopener" class="btn btn-outline">
-      Архив в VK
-    </a>
+    <p class="lede">Фотографии с фестиваля 2024 года — {photos.length} снимков.</p>
+
+    <div class="photo-grid" id="photo-grid">
+      {photos.map((p, i) => (
+        <button type="button" class="photo-thumb" data-full={p.full} data-index={i}>
+          <img src={p.thumb} alt={`Русский костюм 2024 — фото ${i + 1}`} loading="lazy" />
+        </button>
+      ))}
+    </div>
+
+    <p class="credits">
+      Фото: Дмитрий Шиманский, Ульяна Шиманская, Студия The One, Константин Горбачев
+    </p>
   </section>
+
+  <div id="photo-modal" class="photo-modal-overlay" hidden>
+    <button type="button" class="photo-modal-close" id="photo-modal-close" aria-label="Закрыть">×</button>
+    <button type="button" class="photo-nav photo-nav-prev" id="photo-prev-btn" aria-label="Предыдущее фото">‹</button>
+    <div class="photo-modal-body">
+      <img id="photo-modal-img" src="" alt="" />
+    </div>
+    <button type="button" class="photo-nav photo-nav-next" id="photo-next-btn" aria-label="Следующее фото">›</button>
+    <div class="photo-modal-footer">
+      <span id="photo-modal-counter" class="photo-modal-counter"></span>
+      <a id="photo-download-btn" class="btn btn-red" href="#" download>Скачать</a>
+    </div>
+  </div>
 </Layout>
 
-<style>
-  .stub {
-    text-align: center;
-    padding-block: clamp(80px, 12vw, 140px);
+<script>
+  const grid = document.getElementById('photo-grid') as HTMLElement | null;
+  if (grid) {
+    const thumbs = Array.from(grid.querySelectorAll<HTMLButtonElement>('.photo-thumb'));
+    const modal = document.getElementById('photo-modal') as HTMLElement;
+    const modalImg = document.getElementById('photo-modal-img') as HTMLImageElement;
+    const modalCounter = document.getElementById('photo-modal-counter') as HTMLElement;
+    const downloadBtn = document.getElementById('photo-download-btn') as HTMLAnchorElement;
+    const prevBtn = document.getElementById('photo-prev-btn') as HTMLButtonElement;
+    const nextBtn = document.getElementById('photo-next-btn') as HTMLButtonElement;
+    const closeBtn = document.getElementById('photo-modal-close') as HTMLButtonElement;
+
+    let currentIndex = 0;
+
+    function openAt(index: number) {
+      currentIndex = index;
+      const btn = thumbs[currentIndex];
+      const full = btn.dataset.full as string;
+      const alt = btn.querySelector('img')?.getAttribute('alt') ?? '';
+      modalImg.src = full;
+      modalImg.alt = alt;
+      modalCounter.textContent = `${currentIndex + 1} / ${thumbs.length}`;
+      downloadBtn.href = full;
+      downloadBtn.download = full.split('/').pop() ?? 'photo.jpg';
+      modal.hidden = false;
+    }
+
+    function closeModal() {
+      modal.hidden = true;
+    }
+    function showPrev() {
+      openAt((currentIndex - 1 + thumbs.length) % thumbs.length);
+    }
+    function showNext() {
+      openAt((currentIndex + 1) % thumbs.length);
+    }
+
+    thumbs.forEach((btn, i) => btn.addEventListener('click', () => openAt(i)));
+    closeBtn.addEventListener('click', closeModal);
+    prevBtn.addEventListener('click', showPrev);
+    nextBtn.addEventListener('click', showNext);
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closeModal();
+    });
+    window.addEventListener('keydown', (e) => {
+      if (modal.hidden) return;
+      if (e.key === 'Escape') closeModal();
+      if (e.key === 'ArrowLeft') showPrev();
+      if (e.key === 'ArrowRight') showNext();
+    });
   }
+</script>
+
+<style>
   .lede {
-    max-width: 56ch;
-    margin: 16px auto 28px;
+    max-width: 60ch;
     color: var(--color-text-muted);
     font-size: 1.05rem;
+    margin: 14px 0 28px;
+  }
+  .photo-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 10px;
+  }
+  .photo-thumb {
+    display: block;
+    padding: 0;
+    border: none;
+    border-radius: 8px;
+    overflow: hidden;
+    cursor: pointer;
+    background: var(--color-surface);
+    aspect-ratio: 1;
+  }
+  .photo-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.2s ease;
+  }
+  .photo-thumb:hover img {
+    transform: scale(1.06);
+  }
+  .credits {
+    margin-top: 32px;
+    padding-top: 20px;
+    border-top: 1px solid var(--color-border);
+    color: var(--color-text-muted);
+    font-size: 0.88rem;
+    text-align: center;
+  }
+</style>
+
+<style is:global>
+  .photo-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 300;
+    background: rgba(10, 12, 20, 0.92);
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .photo-modal-overlay:not([hidden]) {
+    display: flex;
+  }
+  .photo-modal-body {
+    max-width: min(90vw, 1100px);
+    max-height: 74vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .photo-modal-body img {
+    max-width: 100%;
+    max-height: 74vh;
+    object-fit: contain;
+    border-radius: 6px;
+  }
+  .photo-modal-close {
+    position: absolute;
+    top: 16px;
+    right: 20px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: transparent;
+    color: var(--color-white);
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .photo-modal-close:hover {
+    border-color: var(--color-red);
+    color: var(--color-red);
+  }
+  .photo-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--color-white);
+    font-size: 30px;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .photo-nav:hover {
+    border-color: var(--color-red);
+    color: var(--color-red);
+  }
+  .photo-nav-prev {
+    left: 16px;
+  }
+  .photo-nav-next {
+    right: 16px;
+  }
+  .photo-modal-footer {
+    margin-top: 18px;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+  }
+  .photo-modal-counter {
+    color: rgba(255, 255, 255, 0.75);
+    font-size: 0.9rem;
+  }
+  @media (max-width: 640px) {
+    .photo-nav {
+      width: 40px;
+      height: 40px;
+      font-size: 22px;
+    }
+    .photo-nav-prev {
+      left: 4px;
+    }
+    .photo-nav-next {
+      right: 4px;
+    }
   }
 </style>

@@ -1,11 +1,14 @@
 ---
 import { FREE_DAYS, MAX_SEATS_PER_BOOKING, VIEWBOX } from '../data/seating';
+
+const requestedDay = Astro.url.searchParams.get('day');
+const initialDay = FREE_DAYS.some((d) => d.value === requestedDay) ? requestedDay : FREE_DAYS[0].value;
 ---
 
 <div class="seat-booking" id="seat-booking">
   <div class="day-tabs" role="tablist" aria-label="Выберите день">
-    {FREE_DAYS.map((d, i) => (
-      <button type="button" class="day-tab" data-day={d.value} aria-selected={i === 0 ? 'true' : 'false'}>
+    {FREE_DAYS.map((d) => (
+      <button type="button" class="day-tab" data-day={d.value} aria-selected={d.value === initialDay ? 'true' : 'false'}>
         {d.label}
       </button>
     ))}
@@ -146,7 +149,8 @@ import { FREE_DAYS, MAX_SEATS_PER_BOOKING, VIEWBOX } from '../data/seating';
   const successEmailNoteEl = document.getElementById('success-email-note') as HTMLElement;
   const downloadBtn = document.getElementById('download-pdf-btn') as HTMLButtonElement;
 
-  let currentDay = FREE_DAYS[0].value;
+  const requestedDay = new URLSearchParams(window.location.search).get('day');
+  let currentDay = FREE_DAYS.some((d) => d.value === requestedDay) ? (requestedDay as string) : FREE_DAYS[0].value;
   let bookedSeatIds = new Set<string>();
   let selectedSeatIds: string[] = [];
   let lastPdf: { base64: string; fileName: string } | null = null;

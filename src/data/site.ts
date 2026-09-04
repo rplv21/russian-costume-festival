@@ -14,9 +14,9 @@ export const festival = {
     label: '16–18 октября 2026',
   },
   days: [
-    { date: '16 октября', title: 'Первый день', note: null },
-    { date: '17 октября', title: 'Второй день', note: null },
-    { date: '18 октября', title: 'Гала-концерт', note: 'платный' },
+    { date: '16 октября', title: 'Первый день', ticketsHref: '/bilety?day=16' },
+    { date: '17 октября', title: 'Второй день', ticketsHref: '/bilety?day=17' },
+    { date: '18 октября', title: 'Гала-концерт', ticketsHref: '/bilety#gala' },
   ],
   organizers: [
     'Министерство культуры Ярославской области',
@@ -191,8 +191,7 @@ export const documents = [
 export const mainDoll = '/dolls/doll-main.webp';
 
 export const pastFestivals = [
-  { year: 2025, slug: '2025', poster: '/images/poster-2025.jpg', hasArchive: true },
-  { year: 2024, slug: '2024', poster: null, hasArchive: false },
+  { year: 2024, slug: '2024', poster: null, hasArchive: true },
 ] as const;
 
 export const partners = [

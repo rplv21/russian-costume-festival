@@ -22,7 +22,7 @@ import { festival, programme, contacts } from '../data/site';
       <div class="day-card">
         <span class="day-date">{day.date}</span>
         <span class="day-title">{day.title}</span>
-        {day.note && <span class="day-note">{day.note}</span>}
+        <a href={day.ticketsHref} class="btn btn-red day-btn">Билеты</a>
       </div>
     ))}
   </section>
@@ -128,6 +128,7 @@ import { festival, programme, contacts } from '../data/site';
     padding: 24px;
     display: flex;
     flex-direction: column;
+    align-items: flex-start;
     gap: 6px;
   }
   .day-date {
@@ -138,19 +139,11 @@ import { festival, programme, contacts } from '../data/site';
     font-size: 1.3rem;
     font-family: var(--font-display);
     color: var(--color-ink);
+    margin-bottom: 10px;
   }
-  .day-note {
-    display: inline-block;
-    align-self: flex-start;
-    background: var(--color-red);
-    color: var(--color-white);
-    font-size: 0.7rem;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    padding: 3px 10px;
-    border-radius: 20px;
-    text-shadow: none;
-    -webkit-text-stroke: 0;
+  .day-btn {
+    padding: 10px 20px;
+    font-size: 0.85rem;
   }
 
   .section-head h2 {

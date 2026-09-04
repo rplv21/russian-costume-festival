@@ -1,4 +1,10 @@
 ---
+// Страница отдаётся статикой (prerender), а не через SSR-обработчик: в проде
+// (Dockerfile) финальный образ содержит только dist/, каталог public/ из
+// исходников там не существует — чтение списка файлов должно происходить на
+// этапе сборки (когда public/ ещё доступен), а не при каждом запросе.
+export const prerender = true;
+
 import fs from 'node:fs';
 import path from 'node:path';
 import Layout from '../../layouts/Layout.astro';

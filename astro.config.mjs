@@ -5,8 +5,7 @@ import sitemap from '@astrojs/sitemap';
 
 // https://astro.build/config
 export default defineConfig({
-  // TODO: заменить на реальный домен фестиваля после регистрации
-  site: 'https://ruskostum-yar.ru',
+  site: 'https://kostum76.ru',
   output: 'server',
   adapter: node({ mode: 'standalone' }),
   integrations: [sitemap()],

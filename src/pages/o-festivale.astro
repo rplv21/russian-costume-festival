@@ -1,0 +1,180 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { festival, nominations, programme } from '../data/site';
+
+// Ручная разбивка заголовков номинаций на 2 строки для единообразия карточек.
+const nomTitleLines: Record<string, [string, string]> = {
+  etnograficheskiy: ['Этнографический', 'костюм'],
+  scenicheskiy: ['Сценический', 'костюм'],
+  'sovremennyy-avtorskiy': ['Современный авторский', 'костюм'],
+  natsionalnyy: ['Национальный', 'костюм'],
+  kukla: ['Кукла в традиционном', 'костюме'],
+  aksessuary: ['Аксессуары', 'костюма'],
+};
+---
+
+<Layout
+  title="О фестивале — Русский костюм"
+  description="Учредители, цели и задачи, программа и номинации Всероссийского фестиваля «Русский костюм в городе Ярославле»."
+>
+  <section class="section container">
+    <p class="eyebrow">О фестивале</p>
+    <h1>Всероссийский фестиваль<br />«Русский костюм в городе Ярославле»</h1>
+    <p class="lede">{festival.aboutLong}</p>
+
+    <div class="venues">
+      {festival.venues.map((v) => (
+        <div class="venue-card">
+          <span class="venue-name">{v.name}</span>
+          <span class="venue-address">{v.address}</span>
+        </div>
+      ))}
+    </div>
+  </section>
+
+  <section class="section container">
+    <h2>Цели и задачи</h2>
+    <ul class="goals">
+      <li>Стимулирование интереса мастеров и модельеров к изучению, сохранению и развитию традиций русского костюма.</li>
+      <li>Активное воспитание и формирование эстетических вкусов подрастающего поколения на основе традиционной русской культуры.</li>
+      <li>Повышение профессионального мастерства участников и стимулирование создания новых творческих работ.</li>
+      <li>Выявление и поддержка талантливых мастеров, новых коллективов и авторских центров в области создания русского костюма в его региональном многообразии.</li>
+      <li>Создание базы данных о мастерах и творческих коллективах.</li>
+      <li>Выявление новых тенденций в области создания сценического и современного авторского русского костюма.</li>
+      <li>Проведение научно-аналитической работы на материале конкурса.</li>
+    </ul>
+  </section>
+
+  <section class="section container">
+    <h2>Номинации 2026 года</h2>
+    <div class="nom-grid">
+      {nominations.map((n) => {
+        const lines = nomTitleLines[n.slug];
+        return (
+          <div class="nom-card">
+            <h3>{lines ? (<>{lines[0]}<br />{lines[1]}</>) : n.title}</h3>
+            <p>{n.description}</p>
+          </div>
+        );
+      })}
+    </div>
+  </section>
+
+  <section class="section container">
+    <h2>Программа</h2>
+    <div class="programme-grid">
+      <div>
+        <h3>Конкурсная часть</h3>
+        <ul>
+          {programme.competitive.map((item) => <li>{item.title}</li>)}
+        </ul>
+      </div>
+      <div>
+        <h3>Деловая программа</h3>
+        <ul>
+          {programme.business.map((item) => <li>{item}</li>)}
+        </ul>
+      </div>
+      <div>
+        <h3>Для гостей</h3>
+        <ul>
+          {programme.guests.map((item) => <li>{item}</li>)}
+        </ul>
+      </div>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .lede {
+    max-width: 76ch;
+    color: var(--color-text-muted);
+    font-size: 1.08rem;
+    margin-top: 16px;
+  }
+  .venues {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin-top: 32px;
+  }
+  .venue-card {
+    background: var(--color-surface);
+    border-radius: var(--radius-card);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .venue-name {
+    font-weight: 600;
+    color: var(--color-blue);
+    white-space: pre-line;
+    line-height: 1.3;
+  }
+  .venue-address {
+    color: var(--color-ink-muted);
+    font-size: 0.92rem;
+  }
+
+  h2 {
+    font-size: clamp(1.6rem, 2.8vw, 2.2rem);
+    margin-bottom: 20px;
+  }
+  .goals {
+    max-width: 76ch;
+    color: var(--color-text);
+    padding-left: 20px;
+  }
+  .goals li {
+    margin-bottom: 10px;
+  }
+
+  .nom-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+  .nom-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-card-border);
+    border-radius: var(--radius-card);
+    padding: 24px;
+  }
+  .nom-card h3 {
+    font-size: 1.15rem;
+    color: var(--color-red);
+    margin-bottom: 10px;
+    line-height: 1.25;
+  }
+  .nom-card p {
+    font-size: 0.9rem;
+    color: var(--color-ink-muted);
+  }
+
+  .programme-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 32px;
+  }
+  .programme-grid h3 {
+    font-size: 1.2rem;
+    color: var(--color-heading);
+    margin-bottom: 12px;
+  }
+  .programme-grid ul {
+    padding-left: 18px;
+    color: var(--color-text-muted);
+  }
+  .programme-grid li {
+    margin-bottom: 8px;
+  }
+
+  @media (max-width: 900px) {
+    .venues,
+    .nom-grid,
+    .programme-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

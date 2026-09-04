@@ -1,0 +1,911 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { isAdminRequest } from '../../lib/adminAuth';
+import { FREE_DAYS, VIEWBOX } from '../../data/seating';
+
+const authed = isAdminRequest(Astro.cookies);
+---
+
+<Layout
+  title="Панель администратора — Русский костюм"
+  description="Управление бронированием билетов фестиваля."
+  noindex
+  hideDoll
+>
+  {!authed && (
+    <section class="section container login-section">
+      <div class="login-card">
+        <h1>Панель администратора</h1>
+        <p class="lede">Введите логин и пароль, чтобы управлять бронированием билетов.</p>
+        <form id="admin-login-form" novalidate>
+          <label class="field">
+            <span class="field-label">Логин</span>
+            <input type="text" id="admin-username" name="username" autocomplete="username" required />
+          </label>
+          <label class="field">
+            <span class="field-label">Пароль</span>
+            <input type="password" id="admin-password" name="password" autocomplete="current-password" required />
+          </label>
+          <p class="form-error" id="login-error" hidden>Неверный логин или пароль.</p>
+          <button type="submit" class="btn btn-red submit-btn" id="login-submit-btn">Войти</button>
+        </form>
+      </div>
+    </section>
+  )}
+
+  {authed && (
+    <section class="section container admin-section">
+      <div class="admin-header">
+        <div>
+          <p class="eyebrow">Панель администратора</p>
+          <h1>Управление залом и бронированиями</h1>
+        </div>
+        <button type="button" class="btn btn-outline" id="logout-btn">Выйти</button>
+      </div>
+
+      <div class="admin-toolbar">
+        <div class="day-tabs" role="tablist" aria-label="Выберите день">
+          {FREE_DAYS.map((d, i) => (
+            <button type="button" class="day-tab" data-day={d.value} aria-selected={i === 0 ? 'true' : 'false'}>
+              {d.label}
+            </button>
+          ))}
+        </div>
+        <a href="/api/admin/export" class="btn btn-red">Скачать таблицу (Excel)</a>
+      </div>
+
+      <p class="admin-summary" id="admin-summary">Загрузка данных…</p>
+
+      <div class="map-frame">
+        <div class="legend">
+          <span class="legend-item"><i class="dot dot-available"></i>Свободно (клик — выбрать)</span>
+          <span class="legend-item"><i class="dot dot-selected"></i>Выбрано</span>
+          <span class="legend-item"><i class="dot dot-booked"></i>Занято (клик — подробнее)</span>
+        </div>
+        <div class="map-scroll">
+          <svg id="admin-seat-svg" viewBox={`0 0 ${VIEWBOX.width} ${VIEWBOX.height}`} role="img" aria-label="Схема зала"></svg>
+        </div>
+      </div>
+
+      <div class="selection-bar" id="admin-selection-bar" hidden>
+        <div class="selection-info">
+          <span class="selection-count"><strong id="admin-selection-count">0</strong> мест выбрано</span>
+          <div class="selection-chips" id="admin-selection-chips"></div>
+        </div>
+        <button type="button" class="btn btn-red" id="admin-occupy-btn">Занять выбранные</button>
+      </div>
+
+      <div class="table-wrap">
+        <table id="bookings-table">
+          <thead>
+            <tr>
+              <th>День</th>
+              <th>Место</th>
+              <th>ФИО</th>
+              <th>Телефон</th>
+              <th>Email</th>
+              <th>Бронь оформлена</th>
+              <th>№ брони</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="bookings-tbody"></tbody>
+        </table>
+        <p class="empty-note" id="empty-note" hidden>Пока никто не забронировал места.</p>
+      </div>
+    </section>
+
+    <!-- Модалка: занять выбранные места -->
+    <div id="occupy-modal" class="rk-modal-overlay" hidden>
+      <div class="rk-modal" role="dialog" aria-modal="true" aria-labelledby="occupy-modal-title">
+        <div class="rk-modal-header">
+          <h2 id="occupy-modal-title" class="rk-modal-title">Занять места</h2>
+          <button type="button" class="rk-modal-close" data-close="occupy-modal" aria-label="Закрыть">×</button>
+        </div>
+        <div class="rk-modal-body">
+          <p class="booking-summary" id="occupy-summary-day"></p>
+          <ul class="booking-seats-list" id="occupy-seats-list"></ul>
+          <form id="occupy-form" novalidate>
+            <label class="field">
+              <span class="field-label">ФИО (необязательно)</span>
+              <input type="text" id="occupy-name" placeholder="Иванова Мария Сергеевна" />
+            </label>
+            <p class="form-error" id="occupy-form-error" hidden></p>
+            <button type="submit" class="btn btn-red submit-btn" id="occupy-submit-btn">Занять</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Модалка: информация о занятом месте -->
+    <div id="seat-info-modal" class="rk-modal-overlay" hidden>
+      <div class="rk-modal rk-modal-narrow" role="dialog" aria-modal="true" aria-labelledby="seat-info-title">
+        <div class="rk-modal-header">
+          <h2 id="seat-info-title" class="rk-modal-title">Место занято</h2>
+          <button type="button" class="rk-modal-close" data-close="seat-info-modal" aria-label="Закрыть">×</button>
+        </div>
+        <div class="rk-modal-body">
+          <dl class="seat-info-list" id="seat-info-list"></dl>
+          <div class="seat-info-actions">
+            <a class="btn btn-outline" id="seat-info-download-btn" href="#">Скачать билет</a>
+            <button type="button" class="btn btn-red" id="seat-info-release-btn">Освободить место</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )}
+</Layout>
+
+<script>
+  import { VENUE, FREE_DAYS, TOTAL_SEAT_COUNT as TOTAL, seatLabel, type Section } from '../../data/seating';
+
+  const SVG_NS = 'http://www.w3.org/2000/svg';
+
+  // ---------- Форма входа ----------
+  const loginForm = document.getElementById('admin-login-form') as HTMLFormElement | null;
+  if (loginForm) {
+    const usernameInput = document.getElementById('admin-username') as HTMLInputElement;
+    const passwordInput = document.getElementById('admin-password') as HTMLInputElement;
+    const errorEl = document.getElementById('login-error') as HTMLElement;
+    const submitBtn = document.getElementById('login-submit-btn') as HTMLButtonElement;
+
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorEl.hidden = true;
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Проверяем…';
+      try {
+        const res = await fetch('/api/admin/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: usernameInput.value, password: passwordInput.value }),
+        });
+        const data = await res.json();
+        if (data.ok) {
+          window.location.reload();
+        } else {
+          errorEl.hidden = false;
+        }
+      } catch {
+        errorEl.textContent = 'Проблема с соединением. Попробуйте ещё раз.';
+        errorEl.hidden = false;
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Войти';
+      }
+    });
+  }
+
+  // ---------- Панель ----------
+  const tbody = document.getElementById('bookings-tbody') as HTMLElement | null;
+  if (tbody) {
+    const svg = document.getElementById('admin-seat-svg') as unknown as SVGSVGElement;
+    const summaryEl = document.getElementById('admin-summary') as HTMLElement;
+    const emptyNote = document.getElementById('empty-note') as HTMLElement;
+    const dayTabs = Array.from(document.querySelectorAll<HTMLButtonElement>('.day-tab'));
+    const logoutBtn = document.getElementById('logout-btn') as HTMLButtonElement;
+
+    const selectionBar = document.getElementById('admin-selection-bar') as HTMLElement;
+    const selectionCountEl = document.getElementById('admin-selection-count') as HTMLElement;
+    const selectionChipsEl = document.getElementById('admin-selection-chips') as HTMLElement;
+    const occupyBtn = document.getElementById('admin-occupy-btn') as HTMLButtonElement;
+
+    const occupyModal = document.getElementById('occupy-modal') as HTMLElement;
+    const occupyForm = document.getElementById('occupy-form') as HTMLFormElement;
+    const occupyNameInput = document.getElementById('occupy-name') as HTMLInputElement;
+    const occupySummaryDayEl = document.getElementById('occupy-summary-day') as HTMLElement;
+    const occupySeatsListEl = document.getElementById('occupy-seats-list') as HTMLElement;
+    const occupyFormErrorEl = document.getElementById('occupy-form-error') as HTMLElement;
+    const occupySubmitBtn = document.getElementById('occupy-submit-btn') as HTMLButtonElement;
+
+    const seatInfoModal = document.getElementById('seat-info-modal') as HTMLElement;
+    const seatInfoListEl = document.getElementById('seat-info-list') as HTMLElement;
+    const seatInfoDownloadBtn = document.getElementById('seat-info-download-btn') as HTMLAnchorElement;
+    const seatInfoReleaseBtn = document.getElementById('seat-info-release-btn') as HTMLButtonElement;
+
+    type Row = {
+      day: string;
+      dayLabel: string;
+      seatId: string;
+      seatLabel: string;
+      bookingId: string;
+      name: string;
+      email: string;
+      phone: string;
+      createdAt: string;
+    };
+
+    let allRows: Row[] = [];
+    let currentDay = FREE_DAYS[0].value;
+    let selectedSeatIds: string[] = [];
+    let currentInfoRow: Row | null = null;
+    const seatCircles = new Map<string, SVGCircleElement>();
+
+    function buildMap() {
+      svg.innerHTML = '';
+      seatCircles.clear();
+
+      const stage = document.createElementNS(SVG_NS, 'rect');
+      stage.setAttribute('x', '359');
+      stage.setAttribute('y', '50');
+      stage.setAttribute('width', '612');
+      stage.setAttribute('height', '40');
+      stage.setAttribute('rx', '4');
+      stage.setAttribute('fill', '#e2e6ea');
+      svg.appendChild(stage);
+
+      for (const section of VENUE as Section[]) {
+        for (const seat of section.seats) {
+          const circle = document.createElementNS(SVG_NS, 'circle');
+          circle.setAttribute('cx', String(seat.x));
+          circle.setAttribute('cy', String(seat.y));
+          circle.setAttribute('r', '8.5');
+          circle.setAttribute('stroke-width', '1.4');
+          circle.setAttribute('class', 'admin-seat');
+          circle.dataset.seatId = seat.id;
+          circle.addEventListener('click', () => onSeatClick(seat.id));
+          svg.appendChild(circle);
+          seatCircles.set(seat.id, circle);
+        }
+      }
+    }
+
+    function applyMapForDay() {
+      const bookedIds = new Set(allRows.filter((r) => r.day === currentDay).map((r) => r.seatId));
+      for (const [seatId, circle] of seatCircles) {
+        const booked = bookedIds.has(seatId);
+        const selected = !booked && selectedSeatIds.includes(seatId);
+        circle.setAttribute('fill', booked ? '#e20a17' : selected ? '#273475' : '#ffffff');
+        circle.setAttribute('stroke', booked ? '#e20a17' : '#273475');
+        circle.style.cursor = 'pointer';
+        if (booked) {
+          const row = allRows.find((r) => r.day === currentDay && r.seatId === seatId);
+          if (row) circle.setAttribute('title', `${row.seatLabel} — ${row.name}`);
+        } else {
+          circle.removeAttribute('title');
+        }
+      }
+      renderSelectionBar();
+    }
+
+    function onSeatClick(seatId: string) {
+      const row = allRows.find((r) => r.day === currentDay && r.seatId === seatId);
+      if (row) {
+        openSeatInfoModal(row);
+      } else {
+        toggleSelect(seatId);
+      }
+    }
+
+    function toggleSelect(seatId: string) {
+      const idx = selectedSeatIds.indexOf(seatId);
+      if (idx >= 0) selectedSeatIds.splice(idx, 1);
+      else selectedSeatIds.push(seatId);
+      applyMapForDay();
+    }
+
+    function renderSelectionBar() {
+      selectionCountEl.textContent = String(selectedSeatIds.length);
+      selectionChipsEl.innerHTML = '';
+      for (const seatId of selectedSeatIds) {
+        const chip = document.createElement('span');
+        chip.className = 'chip';
+        const labelSpan = document.createElement('span');
+        labelSpan.textContent = seatLabel(seatId);
+        chip.appendChild(labelSpan);
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.className = 'chip-remove';
+        remove.setAttribute('aria-label', 'Убрать место');
+        remove.textContent = '×';
+        remove.addEventListener('click', () => toggleSelect(seatId));
+        chip.appendChild(remove);
+        selectionChipsEl.appendChild(chip);
+      }
+      selectionBar.hidden = selectedSeatIds.length === 0;
+    }
+
+    function openModal(modal: HTMLElement) {
+      modal.hidden = false;
+    }
+    function closeModal(modal: HTMLElement) {
+      modal.hidden = true;
+    }
+
+    occupyBtn.addEventListener('click', () => {
+      const dayInfo = FREE_DAYS.find((d) => d.value === currentDay);
+      occupySummaryDayEl.textContent = `Дата: ${dayInfo?.date ?? currentDay}`;
+      occupySeatsListEl.innerHTML = '';
+      for (const seatId of selectedSeatIds) {
+        const li = document.createElement('li');
+        li.textContent = seatLabel(seatId);
+        occupySeatsListEl.appendChild(li);
+      }
+      occupyFormErrorEl.hidden = true;
+      occupyNameInput.value = '';
+      openModal(occupyModal);
+    });
+
+    occupyForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      occupyFormErrorEl.hidden = true;
+      occupySubmitBtn.disabled = true;
+      occupySubmitBtn.textContent = 'Занимаем…';
+      try {
+        const res = await fetch('/api/admin/occupy', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            day: currentDay,
+            seatIds: selectedSeatIds,
+            name: occupyNameInput.value.trim() || undefined,
+          }),
+        });
+        const data = await res.json();
+        if (!data.ok) {
+          occupyFormErrorEl.textContent =
+            data.error === 'seats_taken'
+              ? 'Одно из выбранных мест уже занято. Данные обновлены — проверьте схему.'
+              : 'Не получилось занять места. Попробуйте ещё раз.';
+          occupyFormErrorEl.hidden = false;
+          if (data.error === 'seats_taken') await loadData();
+          return;
+        }
+        allRows.push(...(data.rows as Row[]));
+        selectedSeatIds = [];
+        renderTable();
+        renderSummary();
+        applyMapForDay();
+        closeModal(occupyModal);
+        occupyForm.reset();
+      } catch {
+        occupyFormErrorEl.textContent = 'Проблема с соединением. Попробуйте ещё раз.';
+        occupyFormErrorEl.hidden = false;
+      } finally {
+        occupySubmitBtn.disabled = false;
+        occupySubmitBtn.textContent = 'Занять';
+      }
+    });
+
+    function openSeatInfoModal(row: Row) {
+      currentInfoRow = row;
+      seatInfoListEl.innerHTML = '';
+      const fields: Array<[string, string]> = [
+        ['День', row.dayLabel],
+        ['Место', row.seatLabel],
+        ['ФИО', row.name || '—'],
+        ['Телефон', row.phone || '—'],
+        ['Email', row.email || '—'],
+        ['Бронь оформлена', new Date(row.createdAt).toLocaleString('ru-RU')],
+        ['№ брони', row.bookingId],
+      ];
+      for (const [label, value] of fields) {
+        const dt = document.createElement('dt');
+        dt.textContent = label;
+        const dd = document.createElement('dd');
+        dd.textContent = value;
+        seatInfoListEl.appendChild(dt);
+        seatInfoListEl.appendChild(dd);
+      }
+      seatInfoDownloadBtn.href = `/api/admin/ticket?day=${encodeURIComponent(row.day)}&seatId=${encodeURIComponent(row.seatId)}`;
+      openModal(seatInfoModal);
+    }
+
+    seatInfoReleaseBtn.addEventListener('click', async () => {
+      if (!currentInfoRow) return;
+      const { day, seatId, seatLabel: label } = currentInfoRow;
+      await releaseSeat(day, seatId, label);
+      closeModal(seatInfoModal);
+    });
+
+    document.querySelectorAll<HTMLElement>('[data-close]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.close as string;
+        const modal = document.getElementById(id);
+        if (modal) closeModal(modal);
+      });
+    });
+    [occupyModal, seatInfoModal].forEach((modal) => {
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal(modal);
+      });
+    });
+    window.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape') return;
+      if (!occupyModal.hidden) closeModal(occupyModal);
+      if (!seatInfoModal.hidden) closeModal(seatInfoModal);
+    });
+
+    function renderSummary() {
+      const count16 = allRows.filter((r) => r.day === '16').length;
+      const count17 = allRows.filter((r) => r.day === '17').length;
+      summaryEl.textContent = `Занято: 16 октября — ${count16} из ${TOTAL}, 17 октября — ${count17} из ${TOTAL}.`;
+    }
+
+    function renderTable() {
+      tbody!.innerHTML = '';
+      emptyNote.hidden = allRows.length > 0;
+      for (const row of allRows) {
+        const tr = document.createElement('tr');
+        tr.id = `row-${row.day}-${row.seatId}`;
+        tr.dataset.seatId = row.seatId;
+
+        const cells = [
+          row.dayLabel,
+          row.seatLabel,
+          row.name,
+          row.phone,
+          row.email,
+          new Date(row.createdAt).toLocaleString('ru-RU'),
+          row.bookingId,
+        ];
+        for (const text of cells) {
+          const td = document.createElement('td');
+          td.textContent = text;
+          tr.appendChild(td);
+        }
+
+        const actionTd = document.createElement('td');
+        const releaseBtn = document.createElement('button');
+        releaseBtn.type = 'button';
+        releaseBtn.className = 'release-btn';
+        releaseBtn.textContent = 'Освободить';
+        releaseBtn.addEventListener('click', () => releaseSeat(row.day, row.seatId, row.seatLabel));
+        actionTd.appendChild(releaseBtn);
+        tr.appendChild(actionTd);
+
+        tbody!.appendChild(tr);
+      }
+    }
+
+    async function releaseSeat(day: string, seatId: string, label: string) {
+      if (!window.confirm(`Освободить место «${label}»? Бронь будет аннулирована.`)) return;
+      try {
+        const res = await fetch('/api/admin/release', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ day, seatId }),
+        });
+        const data = await res.json();
+        if (!data.ok) {
+          window.alert('Не получилось освободить место. Попробуйте ещё раз.');
+          return;
+        }
+        allRows = allRows.filter((r) => !(r.day === day && r.seatId === seatId));
+        renderTable();
+        renderSummary();
+        applyMapForDay();
+      } catch {
+        window.alert('Проблема с соединением. Попробуйте ещё раз.');
+      }
+    }
+
+    async function loadData() {
+      try {
+        const res = await fetch('/api/admin/bookings');
+        const data = await res.json();
+        if (!data.ok) {
+          summaryEl.textContent = 'Не удалось загрузить данные. Обновите страницу.';
+          return;
+        }
+        allRows = data.rows;
+        renderSummary();
+        renderTable();
+        applyMapForDay();
+      } catch {
+        summaryEl.textContent = 'Проблема с соединением. Обновите страницу.';
+      }
+    }
+
+    dayTabs.forEach((tab) => {
+      tab.addEventListener('click', () => {
+        if (tab.dataset.day === currentDay) return;
+        currentDay = tab.dataset.day as string;
+        dayTabs.forEach((t) => t.setAttribute('aria-selected', t === tab ? 'true' : 'false'));
+        selectedSeatIds = [];
+        applyMapForDay();
+      });
+    });
+
+    logoutBtn.addEventListener('click', async () => {
+      await fetch('/api/admin/logout', { method: 'POST' });
+      window.location.reload();
+    });
+
+    buildMap();
+    loadData();
+  }
+</script>
+
+<style>
+  .login-section {
+    display: flex;
+    justify-content: center;
+    padding-block: clamp(64px, 10vw, 120px);
+  }
+  .login-card {
+    width: 100%;
+    max-width: 420px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-card-border);
+    border-radius: var(--radius-card);
+    padding: 32px;
+  }
+  .login-card h1 {
+    font-size: 1.6rem;
+    margin-bottom: 10px;
+    color: var(--color-blue);
+  }
+  .login-card .lede {
+    color: var(--color-ink-muted);
+    font-size: 0.95rem;
+    margin-bottom: 24px;
+  }
+
+  .field {
+    display: block;
+    margin-bottom: 16px;
+  }
+  .field-label {
+    display: block;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--color-ink);
+    margin-bottom: 6px;
+  }
+  .field input {
+    width: 100%;
+    padding: 11px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--color-card-border);
+    background: var(--color-white);
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    color: var(--color-ink);
+  }
+  .field input:focus {
+    outline: none;
+    border-color: var(--color-blue);
+  }
+  .form-error {
+    color: var(--color-red);
+    font-size: 0.85rem;
+    margin: 8px 0 0;
+  }
+  .submit-btn {
+    width: 100%;
+    justify-content: center;
+    margin-top: 8px;
+  }
+  .submit-btn:disabled {
+    opacity: 0.6;
+    cursor: wait;
+  }
+
+  .admin-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+  }
+  .admin-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+  .day-tabs {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .day-tab {
+    font-family: var(--font-body);
+    font-size: 0.88rem;
+    font-weight: 600;
+    padding: 10px 20px;
+    border-radius: var(--radius-button);
+    border: 2px solid var(--color-card-border);
+    background: var(--color-surface);
+    color: var(--color-ink-muted);
+    cursor: pointer;
+    transition: border-color 0.15s ease, color 0.15s ease;
+  }
+  .day-tab[aria-selected='true'] {
+    border-color: var(--color-red);
+    color: var(--color-red);
+  }
+
+  .admin-summary {
+    font-size: 0.9rem;
+    color: var(--color-text-muted);
+    margin-bottom: 16px;
+  }
+
+  .map-frame {
+    background: var(--color-surface);
+    border-radius: var(--radius-card);
+    padding: 20px clamp(12px, 3vw, 28px);
+    margin-bottom: 28px;
+  }
+  .legend {
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+    font-size: 0.82rem;
+    color: var(--color-ink-muted);
+  }
+  .legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .dot {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 1.5px solid;
+  }
+  .dot-available {
+    background: #fff;
+    border-color: var(--color-blue);
+  }
+  .dot-selected {
+    background: var(--color-blue);
+    border-color: var(--color-blue);
+  }
+  .dot-booked {
+    background: var(--color-red);
+    border-color: var(--color-red);
+  }
+  .map-scroll {
+    overflow-x: auto;
+    padding-bottom: 8px;
+  }
+  #admin-seat-svg {
+    width: 100%;
+    min-width: 640px;
+    height: auto;
+    display: block;
+  }
+
+  .selection-bar {
+    margin-bottom: 28px;
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    background: var(--color-surface);
+    border: 1px solid var(--color-card-border);
+    border-radius: var(--radius-card);
+    padding: 16px 20px;
+  }
+  /* [hidden] в author-CSS перебивает UA-правило display:none по каскаду —
+     явно возвращаем flex только когда атрибут hidden снят */
+  .selection-bar:not([hidden]) {
+    display: flex;
+  }
+  .selection-info {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .selection-count {
+    font-size: 0.9rem;
+    color: var(--color-ink-muted);
+  }
+  .selection-count strong {
+    color: var(--color-blue);
+  }
+  .selection-chips {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .table-wrap {
+    overflow-x: auto;
+  }
+  .empty-note {
+    color: var(--color-text-muted);
+    font-size: 0.95rem;
+    padding: 24px 0;
+    text-align: center;
+  }
+
+  /* Модалки — тот же стиль, что и у публичного бронирования на /bilety */
+  .rk-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 210;
+    background: rgba(26, 26, 31, 0.55);
+    backdrop-filter: blur(4px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .rk-modal-overlay:not([hidden]) {
+    display: flex;
+  }
+  .rk-modal {
+    width: 100%;
+    max-width: 480px;
+    max-height: 88vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--color-surface);
+    color: var(--color-ink);
+    border-radius: var(--radius-card);
+    overflow: hidden;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4);
+  }
+  .rk-modal-narrow {
+    max-width: 420px;
+  }
+  .rk-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--color-card-border);
+    flex-shrink: 0;
+  }
+  .rk-modal-title {
+    font-size: 1.4rem;
+    color: var(--color-blue);
+    margin: 0;
+  }
+  .rk-modal-close {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1px solid var(--color-card-border);
+    background: transparent;
+    color: var(--color-ink);
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .rk-modal-close:hover {
+    border-color: var(--color-red);
+    color: var(--color-red);
+  }
+  .rk-modal-body {
+    padding: 20px 24px 28px;
+    overflow-y: auto;
+  }
+
+  .booking-summary {
+    font-weight: 600;
+    color: var(--color-blue);
+    margin-bottom: 6px;
+  }
+  .booking-seats-list {
+    margin: 0 0 16px;
+    padding-left: 18px;
+    color: var(--color-ink-muted);
+    font-size: 0.9rem;
+  }
+
+  .seat-info-list {
+    margin: 0 0 20px;
+  }
+  .seat-info-list dt {
+    font-size: 0.72rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--color-ink-muted);
+    margin-top: 12px;
+  }
+  .seat-info-list dt:first-child {
+    margin-top: 0;
+  }
+  .seat-info-list dd {
+    margin: 2px 0 0;
+    font-size: 0.95rem;
+    color: var(--color-ink);
+  }
+  .seat-info-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .seat-info-actions .btn {
+    flex: 1;
+    justify-content: center;
+    min-width: 160px;
+  }
+</style>
+
+<style is:global>
+  .admin-seat {
+    transition: stroke 0.1s ease;
+  }
+
+  #bookings-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+  }
+  #bookings-table th {
+    text-align: left;
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    padding: 10px 12px;
+    border-bottom: 2px solid var(--color-border);
+    white-space: nowrap;
+  }
+  #bookings-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--color-border);
+    color: var(--color-text);
+    white-space: nowrap;
+  }
+  #bookings-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.06);
+  }
+  #bookings-table tbody tr.flash {
+    animation: flash-row 0.9s ease;
+  }
+  @keyframes flash-row {
+    0%, 100% { background: transparent; }
+    30% { background: rgba(226, 10, 23, 0.12); }
+  }
+  .release-btn {
+    font-family: var(--font-body);
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 6px 14px;
+    border-radius: var(--radius-button);
+    border: 1px solid var(--color-red);
+    background: transparent;
+    color: var(--color-red);
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .release-btn:hover {
+    background: var(--color-red);
+    color: var(--color-white);
+  }
+
+  /* .chip/.chip-remove создаются через document.createElement в JS и не получают
+     data-astro-cid — обычный scoped <style> их не достанет, поэтому они здесь. */
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--color-surface-hover);
+    border-radius: 20px;
+    padding: 6px 6px 6px 16px;
+    font-size: 0.85rem;
+    color: var(--color-ink);
+  }
+  .chip-remove {
+    flex: none;
+    width: 22px;
+    height: 22px;
+    border: none;
+    border-radius: 50%;
+    background: var(--color-red);
+    color: var(--color-white);
+    font-size: 1rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: opacity 0.15s ease;
+  }
+  .chip-remove:hover {
+    opacity: 0.8;
+  }
+</style>

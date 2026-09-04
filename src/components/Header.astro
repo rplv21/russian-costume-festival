@@ -1,0 +1,221 @@
+---
+import { pastFestivals } from '../data/site';
+
+const nav = [
+  { href: '/o-festivale', label: 'О фестивале' },
+  { href: '/uchastnikam', label: 'Участники' },
+  { href: '/vystavka', label: 'Выставка' },
+  { href: '/galereya', label: 'Галерея' },
+  { href: '/dokumenty', label: 'Документы' },
+];
+
+const currentPath = Astro.url.pathname;
+---
+
+<header class="site-header">
+  <div class="container header-row">
+    <a href="/" class="brand">
+      <span class="brand-name">Русский<br />костюм</span>
+    </a>
+
+    <button class="menu-toggle" id="menuToggle" type="button" aria-expanded="false" aria-controls="mainNav">
+      <span></span><span></span><span></span>
+      <span class="sr-only">Открыть меню</span>
+    </button>
+
+    <nav class="main-nav" id="mainNav">
+      {nav.map((item) => (
+        <a href={item.href} class:list={{ active: currentPath.startsWith(item.href) }}>{item.label}</a>
+      ))}
+      <div class="nav-dropdown">
+        <button type="button" class="dropdown-trigger">
+          Прошедшие фестивали <span aria-hidden="true">▾</span>
+        </button>
+        <div class="dropdown-panel">
+          {pastFestivals.map((f) => (
+            <a href={`/proshedshie/${f.slug}`}>Русский костюм {f.year}</a>
+          ))}
+        </div>
+      </div>
+
+      <div class="nav-cta">
+        <a href="/bilety" class="btn btn-red btn-sm">Билеты</a>
+      </div>
+    </nav>
+  </div>
+</header>
+
+<style>
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: rgba(22, 33, 61, 0.88);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--color-border);
+  }
+  .header-row {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding-block: 14px;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    line-height: 1;
+    text-decoration: none;
+    color: var(--color-heading);
+    white-space: nowrap;
+    flex: none;
+  }
+  .brand-name {
+    font-family: var(--font-display);
+    font-size: 1.05rem;
+    line-height: 1.15;
+    white-space: nowrap;
+  }
+
+  .menu-toggle {
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+    width: 40px;
+    height: 40px;
+    background: none;
+    border: none;
+    cursor: pointer;
+  }
+  .menu-toggle span {
+    display: block;
+    width: 100%;
+    height: 2px;
+    background: var(--color-heading);
+  }
+
+  .main-nav {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: clamp(8px, 1.4vw, 24px);
+  }
+  .main-nav > a {
+    font-size: 0.92rem;
+    font-weight: 500;
+    text-decoration: none;
+    color: var(--color-text);
+    white-space: nowrap;
+    padding-block: 6px;
+    border-bottom: 2px solid transparent;
+    transition: border-color 0.15s ease, color 0.15s ease;
+  }
+  .main-nav > a:hover,
+  .main-nav > a.active {
+    color: var(--color-red);
+    border-color: var(--color-red);
+  }
+
+  .nav-dropdown {
+    position: relative;
+  }
+  .dropdown-trigger {
+    background: none;
+    border: none;
+    font-family: inherit;
+    font-size: 0.92rem;
+    font-weight: 500;
+    color: var(--color-text);
+    cursor: pointer;
+    padding-block: 6px;
+  }
+  .dropdown-panel {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: var(--color-surface);
+    border: 1px solid var(--color-card-border);
+    border-radius: var(--radius-card);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+    padding: 8px;
+    min-width: 200px;
+  }
+  .nav-dropdown:hover .dropdown-panel,
+  .nav-dropdown:focus-within .dropdown-panel {
+    display: block;
+  }
+  .dropdown-panel a {
+    display: block;
+    padding: 10px 12px;
+    border-radius: 8px;
+    text-decoration: none;
+    color: var(--color-ink);
+    font-size: 0.9rem;
+  }
+  .dropdown-panel a:hover {
+    background: var(--color-surface-hover);
+    color: var(--color-red);
+  }
+
+  .nav-cta {
+    display: flex;
+    gap: 10px;
+  }
+  .btn-sm {
+    padding: 10px 18px;
+    font-size: 0.85rem;
+  }
+
+  @media (max-width: 960px) {
+    .menu-toggle {
+      display: flex;
+    }
+    .main-nav {
+      display: none;
+      position: fixed;
+      inset: 68px 0 0 0;
+      height: calc(100vh - 68px);
+      height: calc(100dvh - 68px);
+      background: var(--color-canvas);
+      flex-direction: column;
+      align-items: flex-start;
+      padding: 24px clamp(20px, 4vw, 48px);
+      gap: 18px;
+      overflow-y: auto;
+    }
+    .main-nav.open {
+      display: flex;
+    }
+    .nav-dropdown {
+      width: 100%;
+    }
+    .dropdown-panel {
+      display: block;
+      position: static;
+      box-shadow: none;
+      border: none;
+      padding-left: 12px;
+    }
+    .nav-cta {
+      width: 100%;
+      flex-direction: column;
+    }
+    .nav-cta .btn {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+</style>
+
+<script>
+  const toggle = document.getElementById('menuToggle');
+  const nav = document.getElementById('mainNav');
+  toggle?.addEventListener('click', () => {
+    const isOpen = nav?.classList.toggle('open');
+    toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+  });
+</script>

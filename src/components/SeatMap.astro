@@ -1,0 +1,908 @@
+---
+import { FREE_DAYS, MAX_SEATS_PER_BOOKING, VIEWBOX } from '../data/seating';
+---
+
+<div class="seat-booking" id="seat-booking">
+  <div class="day-tabs" role="tablist" aria-label="Выберите день">
+    {FREE_DAYS.map((d, i) => (
+      <button type="button" class="day-tab" data-day={d.value} aria-selected={i === 0 ? 'true' : 'false'}>
+        {d.label}
+      </button>
+    ))}
+  </div>
+
+  <div class="map-frame">
+    <div class="map-toolbar">
+      <div class="legend">
+        <span class="legend-item"><i class="dot dot-available"></i>Свободно</span>
+        <span class="legend-item"><i class="dot dot-selected"></i>Выбрано</span>
+        <span class="legend-item"><i class="dot dot-booked"></i>Занято</span>
+      </div>
+      <div class="zoom-controls">
+        <button type="button" id="zoom-out-btn" aria-label="Уменьшить схему">−</button>
+        <span id="zoom-level">100%</span>
+        <button type="button" id="zoom-in-btn" aria-label="Увеличить схему">+</button>
+      </div>
+    </div>
+    <div class="map-scroll" id="map-scroll">
+      <svg id="seat-svg" viewBox={`0 0 ${VIEWBOX.width} ${VIEWBOX.height}`} role="img" aria-label="Схема зала"></svg>
+    </div>
+  </div>
+
+  <div class="selection-bar" id="selection-bar" hidden>
+    <div class="selection-info">
+      <span class="selection-count"><strong id="selection-count">0</strong> / {MAX_SEATS_PER_BOOKING} мест выбрано</span>
+      <div class="selection-chips" id="selection-chips"></div>
+    </div>
+    <button type="button" class="btn btn-red" id="open-booking-btn">Забронировать</button>
+  </div>
+
+  <p class="hint">Один пользователь может забронировать не более {MAX_SEATS_PER_BOOKING} билетов одновременно. Вход бесплатный, места распределяются по факту бронирования.</p>
+</div>
+
+<!-- Модальное окно 1: контактные данные -->
+<div id="booking-modal" class="rk-modal-overlay" hidden>
+  <div class="rk-modal" role="dialog" aria-modal="true" aria-labelledby="booking-modal-title">
+    <div class="rk-modal-header">
+      <h2 id="booking-modal-title" class="rk-modal-title">Оформление брони</h2>
+      <button type="button" class="rk-modal-close" data-close="booking-modal" aria-label="Закрыть">×</button>
+    </div>
+    <div class="rk-modal-body">
+      <p class="booking-summary" id="booking-summary-day"></p>
+      <ul class="booking-seats-list" id="booking-seats-list"></ul>
+
+      <div class="passport-warning">
+        Зритель, забронировавший билеты, должен иметь при себе паспорт при входе на мероприятие.
+      </div>
+
+      <form id="booking-form" novalidate>
+        <label class="field">
+          <span class="field-label">ФИО</span>
+          <input type="text" name="name" id="booking-name" autocomplete="name" required placeholder="Иванова Мария Сергеевна" />
+          <span class="field-error" data-error-for="name"></span>
+        </label>
+        <label class="field">
+          <span class="field-label">Электронная почта</span>
+          <input type="email" name="email" id="booking-email" autocomplete="email" required placeholder="you@example.com" />
+          <span class="field-error" data-error-for="email"></span>
+        </label>
+        <label class="field">
+          <span class="field-label">Номер телефона</span>
+          <input type="tel" name="phone" id="booking-phone" autocomplete="tel" required placeholder="+7 (900) 000-00-00" />
+          <span class="field-error" data-error-for="phone"></span>
+        </label>
+
+        <label class="consent-row">
+          <input type="checkbox" id="booking-consent" required />
+          <span>
+            Я согласен(-на) на
+            {' '}<a href="#" class="privacy-modal-trigger">обработку персональных данных</a>
+          </span>
+        </label>
+        <span class="field-error" data-error-for="consent"></span>
+
+        <p class="form-error" id="booking-form-error" hidden></p>
+
+        <button type="submit" class="btn btn-red submit-btn" id="booking-submit-btn">
+          Получить билеты
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Модальное окно 2: билеты готовы -->
+<div id="success-modal" class="rk-modal-overlay" hidden>
+  <div class="rk-modal rk-modal-narrow" role="dialog" aria-modal="true" aria-labelledby="success-modal-title">
+    <div class="rk-modal-header">
+      <h2 id="success-modal-title" class="rk-modal-title">Готово!</h2>
+      <button type="button" class="rk-modal-close" data-close="success-modal" aria-label="Закрыть">×</button>
+    </div>
+    <div class="rk-modal-body success-body">
+      <p>Бронь <strong id="success-booking-id"></strong> подтверждена.</p>
+      <p id="success-email-note" class="muted-note"></p>
+      <button type="button" class="btn btn-red" id="download-pdf-btn">Скачать билеты (PDF)</button>
+      <p class="passport-warning small">Не забудьте паспорт — он понадобится на входе.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { VENUE, MAX_SEATS_PER_BOOKING, FREE_DAYS, seatLabel } from '../data/seating';
+
+  const SVG_NS = 'http://www.w3.org/2000/svg';
+  const COLOR = {
+    available: { fill: '#ffffff', stroke: '#273475', text: '#273475' },
+    selected: { fill: '#e20a17', stroke: '#e20a17', text: '#ffffff' },
+    booked: { fill: '#d8d8dc', stroke: '#c3c3c8', text: '#8a8a90' },
+  } as const;
+
+  type SeatState = keyof typeof COLOR;
+
+  const svg = document.getElementById('seat-svg') as unknown as SVGSVGElement;
+  const mapScroll = document.getElementById('map-scroll') as HTMLElement;
+  const zoomInBtn = document.getElementById('zoom-in-btn') as HTMLButtonElement;
+  const zoomOutBtn = document.getElementById('zoom-out-btn') as HTMLButtonElement;
+  const zoomLevelEl = document.getElementById('zoom-level') as HTMLElement;
+  const dayTabs = Array.from(document.querySelectorAll<HTMLButtonElement>('.day-tab'));
+  const selectionBar = document.getElementById('selection-bar') as HTMLElement;
+  const selectionCountEl = document.getElementById('selection-count') as HTMLElement;
+  const selectionChipsEl = document.getElementById('selection-chips') as HTMLElement;
+  const openBookingBtn = document.getElementById('open-booking-btn') as HTMLButtonElement;
+
+  const bookingModal = document.getElementById('booking-modal') as HTMLElement;
+  const bookingForm = document.getElementById('booking-form') as HTMLFormElement;
+  const nameInput = document.getElementById('booking-name') as HTMLInputElement;
+  const emailInput = document.getElementById('booking-email') as HTMLInputElement;
+  const phoneInput = document.getElementById('booking-phone') as HTMLInputElement;
+  const consentInput = document.getElementById('booking-consent') as HTMLInputElement;
+  const formErrorEl = document.getElementById('booking-form-error') as HTMLElement;
+  const submitBtn = document.getElementById('booking-submit-btn') as HTMLButtonElement;
+  const summaryDayEl = document.getElementById('booking-summary-day') as HTMLElement;
+  const seatsListEl = document.getElementById('booking-seats-list') as HTMLElement;
+
+  const successModal = document.getElementById('success-modal') as HTMLElement;
+  const successBookingIdEl = document.getElementById('success-booking-id') as HTMLElement;
+  const successEmailNoteEl = document.getElementById('success-email-note') as HTMLElement;
+  const downloadBtn = document.getElementById('download-pdf-btn') as HTMLButtonElement;
+
+  let currentDay = FREE_DAYS[0].value;
+  let bookedSeatIds = new Set<string>();
+  let selectedSeatIds: string[] = [];
+  let lastPdf: { base64: string; fileName: string } | null = null;
+
+  const seatEls = new Map<string, { circle: SVGCircleElement; text: SVGTextElement }>();
+
+  function buildMap() {
+    svg.innerHTML = '';
+    seatEls.clear();
+
+    const stage = document.createElementNS(SVG_NS, 'rect');
+    stage.setAttribute('x', '359');
+    stage.setAttribute('y', '50');
+    stage.setAttribute('width', '612');
+    stage.setAttribute('height', '40');
+    stage.setAttribute('rx', '4');
+    stage.setAttribute('fill', '#e2e6ea');
+    svg.appendChild(stage);
+    addLabel('Сцена', 665, 74, 11);
+
+    for (const section of VENUE) {
+      for (const seat of section.seats) {
+        const circle = document.createElementNS(SVG_NS, 'circle');
+        circle.setAttribute('cx', String(seat.x));
+        circle.setAttribute('cy', String(seat.y));
+        circle.setAttribute('r', '8.5');
+        circle.setAttribute('stroke-width', '1.4');
+        circle.setAttribute('class', 'rk-seat');
+        circle.dataset.seatId = seat.id;
+
+        const text = document.createElementNS(SVG_NS, 'text');
+        text.setAttribute('x', String(seat.x));
+        text.setAttribute('y', String(seat.y + 2.6));
+        text.setAttribute('text-anchor', 'middle');
+        text.setAttribute('font-size', '6.8');
+        text.setAttribute('font-family', 'var(--font-body), sans-serif');
+        text.setAttribute('pointer-events', 'none');
+        text.textContent = String(seat.num);
+
+        circle.addEventListener('click', () => onSeatClick(seat.id));
+
+        svg.appendChild(circle);
+        svg.appendChild(text);
+        seatEls.set(seat.id, { circle, text });
+      }
+    }
+
+    addLabel('Партер', 767, 122, 13);
+    addLabel('Амфитеатр', 779, 305, 13);
+    addLabel('Балкон', 745, 607, 13);
+    addLabel('Ложа А', 488, 814, 10);
+    addLabel('Ложа Б', 1069, 819, 10);
+    addLabel('Балкон, левая сторона', 16, 606, 9, -90);
+    addLabel('Балкон, правая сторона', 1480, 603, 9, 90);
+
+    applyStates();
+  }
+
+  function addLabel(label: string, x: number, y: number, size: number, rotate = 0) {
+    const text = document.createElementNS(SVG_NS, 'text');
+    text.setAttribute('x', String(x));
+    text.setAttribute('y', String(y));
+    text.setAttribute('text-anchor', 'middle');
+    text.setAttribute('font-size', String(size));
+    text.setAttribute('font-family', 'var(--font-body), sans-serif');
+    text.setAttribute('font-weight', '600');
+    text.setAttribute('letter-spacing', '0.08em');
+    text.setAttribute('fill', '#55565f');
+    if (rotate) text.setAttribute('transform', `rotate(${rotate} ${x} ${y})`);
+    text.textContent = label.toUpperCase();
+    svg.appendChild(text);
+  }
+
+  function seatState(seatId: string): SeatState {
+    if (selectedSeatIds.includes(seatId)) return 'selected';
+    if (bookedSeatIds.has(seatId)) return 'booked';
+    return 'available';
+  }
+
+  function applyStates() {
+    for (const [seatId, els] of seatEls) {
+      const state = seatState(seatId);
+      const c = COLOR[state];
+      els.circle.setAttribute('fill', c.fill);
+      els.circle.setAttribute('stroke', c.stroke);
+      els.text.setAttribute('fill', c.text);
+      els.circle.setAttribute('data-state', state);
+      els.circle.style.cursor = state === 'booked' ? 'not-allowed' : 'pointer';
+    }
+    renderSelectionBar();
+  }
+
+  function onSeatClick(seatId: string) {
+    if (bookedSeatIds.has(seatId)) return;
+    const idx = selectedSeatIds.indexOf(seatId);
+    if (idx >= 0) {
+      selectedSeatIds.splice(idx, 1);
+    } else {
+      if (selectedSeatIds.length >= MAX_SEATS_PER_BOOKING) {
+        flashLimitWarning();
+        return;
+      }
+      selectedSeatIds.push(seatId);
+    }
+    applyStates();
+  }
+
+  function flashLimitWarning() {
+    selectionBar.classList.add('shake');
+    window.setTimeout(() => selectionBar.classList.remove('shake'), 400);
+  }
+
+  function renderSelectionBar() {
+    selectionCountEl.textContent = String(selectedSeatIds.length);
+    selectionChipsEl.innerHTML = '';
+    for (const seatId of selectedSeatIds) {
+      const chip = document.createElement('span');
+      chip.className = 'chip';
+      const labelSpan = document.createElement('span');
+      labelSpan.textContent = seatLabel(seatId);
+      chip.appendChild(labelSpan);
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.className = 'chip-remove';
+      remove.setAttribute('aria-label', 'Убрать место');
+      remove.textContent = '×';
+      remove.addEventListener('click', () => onSeatClick(seatId));
+      chip.appendChild(remove);
+      selectionChipsEl.appendChild(chip);
+    }
+    selectionBar.hidden = selectedSeatIds.length === 0;
+  }
+
+  async function loadAvailability() {
+    try {
+      const res = await fetch(`/api/seats?day=${encodeURIComponent(currentDay)}`);
+      const data = await res.json();
+      bookedSeatIds = new Set<string>(data.ok ? data.bookedSeatIds : []);
+    } catch {
+      bookedSeatIds = new Set();
+    }
+    applyStates();
+  }
+
+  dayTabs.forEach((tab) => {
+    tab.addEventListener('click', () => {
+      if (tab.dataset.day === currentDay) return;
+      currentDay = tab.dataset.day as string;
+      dayTabs.forEach((t) => t.setAttribute('aria-selected', t === tab ? 'true' : 'false'));
+      selectedSeatIds = [];
+      loadAvailability();
+    });
+  });
+
+  function openModal(modal: HTMLElement) {
+    modal.hidden = false;
+  }
+  function closeModal(modal: HTMLElement) {
+    modal.hidden = true;
+  }
+
+  document.querySelectorAll<HTMLElement>('[data-close]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.close as string;
+      const modal = document.getElementById(id);
+      if (modal) closeModal(modal);
+    });
+  });
+  [bookingModal, successModal].forEach((modal) => {
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closeModal(modal);
+    });
+  });
+  window.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    if (!bookingModal.hidden) closeModal(bookingModal);
+    if (!successModal.hidden) closeModal(successModal);
+  });
+
+  openBookingBtn.addEventListener('click', () => {
+    const dayLabel = FREE_DAYS.find((d) => d.value === currentDay)?.date ?? currentDay;
+    summaryDayEl.textContent = `Дата: ${dayLabel}`;
+    seatsListEl.innerHTML = '';
+    for (const seatId of selectedSeatIds) {
+      const li = document.createElement('li');
+      li.textContent = seatLabel(seatId);
+      seatsListEl.appendChild(li);
+    }
+    formErrorEl.hidden = true;
+    openModal(bookingModal);
+  });
+
+  function setFieldError(field: string, message: string) {
+    const el = bookingForm.querySelector<HTMLElement>(`[data-error-for="${field}"]`);
+    if (el) el.textContent = message;
+  }
+  function clearFieldErrors() {
+    bookingForm.querySelectorAll<HTMLElement>('.field-error').forEach((el) => (el.textContent = ''));
+    formErrorEl.hidden = true;
+  }
+
+  bookingForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    clearFieldErrors();
+
+    const name = nameInput.value.trim();
+    const email = emailInput.value.trim();
+    const phone = phoneInput.value.trim();
+    const consent = consentInput.checked;
+
+    let hasError = false;
+    const nameParts = name.split(/\s+/).filter(Boolean);
+    if (nameParts.length < 2) {
+      setFieldError('name', 'Укажите фамилию и имя полностью');
+      hasError = true;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setFieldError('email', 'Проверьте адрес электронной почты');
+      hasError = true;
+    }
+    if (phone.replace(/\D/g, '').length < 10) {
+      setFieldError('phone', 'Проверьте номер телефона');
+      hasError = true;
+    }
+    if (!consent) {
+      setFieldError('consent', 'Нужно согласие на обработку персональных данных');
+      hasError = true;
+    }
+    if (hasError) return;
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Отправляем…';
+
+    try {
+      const res = await fetch('/api/book', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ day: currentDay, seatIds: selectedSeatIds, name, email, phone, consent }),
+      });
+      const data = await res.json();
+
+      if (!res.ok || !data.ok) {
+        if (data.error === 'seats_taken') {
+          formErrorEl.textContent = 'Одно из выбранных мест уже забронировали. Выберите другие места.';
+          formErrorEl.hidden = false;
+          const taken: string[] = data.takenSeatIds || [];
+          selectedSeatIds = selectedSeatIds.filter((id) => !taken.includes(id));
+          taken.forEach((id) => bookedSeatIds.add(id));
+          applyStates();
+        } else {
+          formErrorEl.textContent = 'Не получилось оформить бронь. Попробуйте ещё раз.';
+          formErrorEl.hidden = false;
+        }
+        return;
+      }
+
+      lastPdf = { base64: data.pdfBase64, fileName: data.pdfFileName };
+      successBookingIdEl.textContent = `№ ${data.bookingId}`;
+      successEmailNoteEl.textContent = data.emailSent
+        ? `Билеты также отправлены на почту ${email}.`
+        : 'Скачайте билеты по кнопке ниже.';
+
+      bookedSeatIds = new Set([...bookedSeatIds, ...selectedSeatIds]);
+      selectedSeatIds = [];
+      applyStates();
+
+      closeModal(bookingModal);
+      bookingForm.reset();
+      openModal(successModal);
+    } catch {
+      formErrorEl.textContent = 'Проблема с соединением. Попробуйте ещё раз.';
+      formErrorEl.hidden = false;
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Получить билеты';
+    }
+  });
+
+  downloadBtn.addEventListener('click', () => {
+    if (!lastPdf) return;
+    const byteChars = atob(lastPdf.base64);
+    const bytes = new Uint8Array(byteChars.length);
+    for (let i = 0; i < byteChars.length; i++) bytes[i] = byteChars.charCodeAt(i);
+    const blob = new Blob([bytes], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = lastPdf.fileName;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  });
+
+  const ZOOM_STEPS = [100, 120, 140, 160, 180, 200];
+  let zoomIndex = 0;
+
+  function applyZoom() {
+    // Ширину контейнера считаем каждый раз заново — она не зависит от текущей
+    // (возможно, уже увеличенной) ширины самой svg, в отличие от её getBoundingClientRect.
+    const baseWidthPx = mapScroll.clientWidth || Math.max(640, window.innerWidth * 0.5);
+    const pct = ZOOM_STEPS[zoomIndex];
+    svg.style.width = `${Math.round((baseWidthPx * pct) / 100)}px`;
+    zoomLevelEl.textContent = `${pct}%`;
+    zoomOutBtn.disabled = zoomIndex === 0;
+    zoomInBtn.disabled = zoomIndex === ZOOM_STEPS.length - 1;
+  }
+  zoomInBtn.addEventListener('click', () => {
+    zoomIndex = Math.min(ZOOM_STEPS.length - 1, zoomIndex + 1);
+    applyZoom();
+  });
+  zoomOutBtn.addEventListener('click', () => {
+    zoomIndex = Math.max(0, zoomIndex - 1);
+    applyZoom();
+  });
+
+  // Перетаскивание приближённой схемы мышью (зажатая ЛКМ)
+  let isPanning = false;
+  let panMoved = false;
+  let panStartX = 0;
+  let panStartY = 0;
+  let panStartScrollLeft = 0;
+  let panStartScrollTop = 0;
+
+  mapScroll.addEventListener('mousedown', (e) => {
+    if (e.button !== 0) return;
+    isPanning = true;
+    panMoved = false;
+    panStartX = e.clientX;
+    panStartY = e.clientY;
+    panStartScrollLeft = mapScroll.scrollLeft;
+    panStartScrollTop = mapScroll.scrollTop;
+    mapScroll.classList.add('panning');
+  });
+  window.addEventListener('mousemove', (e) => {
+    if (!isPanning) return;
+    const dx = e.clientX - panStartX;
+    const dy = e.clientY - panStartY;
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) panMoved = true;
+    mapScroll.scrollLeft = panStartScrollLeft - dx;
+    mapScroll.scrollTop = panStartScrollTop - dy;
+  });
+  window.addEventListener('mouseup', () => {
+    isPanning = false;
+    mapScroll.classList.remove('panning');
+  });
+  // Если перед этим тащили мышью — не считаем это кликом по месту
+  svg.addEventListener(
+    'click',
+    (e) => {
+      if (panMoved) {
+        e.stopPropagation();
+        panMoved = false;
+      }
+    },
+    true,
+  );
+
+  buildMap();
+  loadAvailability();
+  // Ширина контейнера ещё не гарантированно посчитана в этот момент (до первого
+  // layout-прохода браузера) — откладываем первичный applyZoom на кадр вперёд.
+  requestAnimationFrame(applyZoom);
+</script>
+
+<style>
+  .seat-booking {
+    margin-top: 24px;
+  }
+
+  .day-tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .day-tab {
+    font-family: var(--font-body);
+    font-size: 0.88rem;
+    font-weight: 600;
+    padding: 10px 20px;
+    border-radius: var(--radius-button);
+    border: 2px solid var(--color-card-border);
+    background: var(--color-surface);
+    color: var(--color-ink-muted);
+    cursor: pointer;
+    transition: border-color 0.15s ease, color 0.15s ease;
+  }
+  .day-tab[aria-selected='true'] {
+    border-color: var(--color-red);
+    color: var(--color-red);
+  }
+
+  .map-frame {
+    background: var(--color-surface);
+    border-radius: var(--radius-card);
+    padding: 20px clamp(12px, 3vw, 28px) 8px;
+  }
+  .map-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+  .legend {
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+    font-size: 0.82rem;
+    color: var(--color-ink-muted);
+  }
+  .zoom-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.82rem;
+    color: var(--color-ink-muted);
+  }
+  .zoom-controls button {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 1px solid var(--color-card-border);
+    background: var(--color-white);
+    color: var(--color-blue);
+    font-size: 1rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: border-color 0.15s ease, color 0.15s ease;
+  }
+  .zoom-controls button:hover:not(:disabled) {
+    border-color: var(--color-red);
+    color: var(--color-red);
+  }
+  .zoom-controls button:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+  .zoom-controls span {
+    min-width: 3.2em;
+    text-align: center;
+  }
+  .legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .dot {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 1.5px solid;
+  }
+  .dot-available {
+    background: #fff;
+    border-color: var(--color-blue);
+  }
+  .dot-selected {
+    background: var(--color-red);
+    border-color: var(--color-red);
+  }
+  .dot-booked {
+    background: #d8d8dc;
+    border-color: #c3c3c8;
+  }
+
+  .map-scroll {
+    overflow-x: auto;
+    padding-bottom: 8px;
+    cursor: grab;
+    user-select: none;
+  }
+  .map-scroll.panning {
+    cursor: grabbing;
+  }
+  #seat-svg {
+    width: 100%;
+    min-width: 640px;
+    max-width: none;
+    height: auto;
+    display: block;
+  }
+  .selection-bar {
+    margin-top: 18px;
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    background: var(--color-surface);
+    border: 1px solid var(--color-card-border);
+    border-radius: var(--radius-card);
+    padding: 16px 20px;
+  }
+  /* [hidden] в author-CSS перебивает UA-правило display:none по каскаду —
+     явно возвращаем flex только когда атрибут hidden снят */
+  .selection-bar:not([hidden]) {
+    display: flex;
+  }
+  .selection-bar.shake {
+    animation: shake 0.4s ease;
+  }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-4px); }
+    75% { transform: translateX(4px); }
+  }
+  .selection-info {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .selection-count {
+    font-size: 0.9rem;
+    color: var(--color-ink-muted);
+  }
+  .selection-count strong {
+    color: var(--color-red);
+  }
+  .selection-chips {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .hint {
+    margin-top: 14px;
+    font-size: 0.82rem;
+    color: var(--color-text-muted);
+  }
+
+  /* Модалки бронирования — переиспользуем стиль privacy-modal с сайта */
+  .rk-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 210;
+    background: rgba(26, 26, 31, 0.55);
+    backdrop-filter: blur(4px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .rk-modal-overlay:not([hidden]) {
+    display: flex;
+  }
+  .rk-modal {
+    width: 100%;
+    max-width: 480px;
+    max-height: 88vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--color-surface);
+    color: var(--color-ink);
+    text-shadow: none;
+    -webkit-text-stroke: 0;
+    border-radius: var(--radius-card);
+    overflow: hidden;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4);
+  }
+  .rk-modal-narrow {
+    max-width: 400px;
+  }
+  .rk-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--color-card-border);
+    flex-shrink: 0;
+  }
+  .rk-modal-title {
+    font-size: 1.4rem;
+    color: var(--color-blue);
+    margin: 0;
+  }
+  .rk-modal-close {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1px solid var(--color-card-border);
+    background: transparent;
+    color: var(--color-ink);
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .rk-modal-close:hover {
+    border-color: var(--color-red);
+    color: var(--color-red);
+  }
+  .rk-modal-body {
+    padding: 20px 24px 28px;
+    overflow-y: auto;
+  }
+
+  .booking-summary {
+    font-weight: 600;
+    color: var(--color-blue);
+    margin-bottom: 6px;
+  }
+  .booking-seats-list {
+    margin: 0 0 16px;
+    padding-left: 18px;
+    color: var(--color-ink-muted);
+    font-size: 0.9rem;
+  }
+
+  .passport-warning {
+    background: var(--color-surface-hover);
+    border-left: 3px solid var(--color-red);
+    padding: 10px 14px;
+    font-size: 0.85rem;
+    color: var(--color-ink);
+    border-radius: 6px;
+    margin-bottom: 18px;
+  }
+  .passport-warning.small {
+    margin: 16px 0 0;
+    text-align: left;
+  }
+
+  .field {
+    display: block;
+    margin-bottom: 14px;
+  }
+  .field-label {
+    display: block;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--color-ink);
+    margin-bottom: 6px;
+  }
+  .field input[type='text'],
+  .field input[type='email'],
+  .field input[type='tel'] {
+    width: 100%;
+    padding: 11px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--color-card-border);
+    background: var(--color-white);
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    color: var(--color-ink);
+  }
+  .field input:focus {
+    outline: none;
+    border-color: var(--color-blue);
+  }
+  .field-error {
+    display: block;
+    color: var(--color-red);
+    font-size: 0.78rem;
+    margin-top: 4px;
+    min-height: 1em;
+  }
+
+  .consent-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 0.85rem;
+    color: var(--color-ink-muted);
+    margin-bottom: 4px;
+    cursor: pointer;
+  }
+  .consent-row input {
+    margin-top: 3px;
+    flex-shrink: 0;
+  }
+  .consent-row a {
+    color: var(--color-blue);
+    text-decoration: underline;
+  }
+
+  .form-error {
+    color: var(--color-red);
+    font-size: 0.85rem;
+    margin: 8px 0;
+  }
+
+  .submit-btn {
+    width: 100%;
+    justify-content: center;
+    margin-top: 12px;
+  }
+  .submit-btn:disabled {
+    opacity: 0.6;
+    cursor: wait;
+  }
+
+  .success-body {
+    text-align: center;
+  }
+  .success-body p {
+    margin-bottom: 14px;
+    color: var(--color-ink-muted);
+  }
+  .success-body strong {
+    color: var(--color-blue);
+  }
+  .success-body .btn {
+    width: 100%;
+    justify-content: center;
+  }
+  .muted-note {
+    font-size: 0.88rem;
+  }
+</style>
+
+<style is:global>
+  .rk-seat {
+    transition: stroke 0.1s ease;
+  }
+  .rk-seat[data-state='available']:hover {
+    stroke: #e20a17;
+    stroke-width: 2;
+  }
+  .rk-seat[data-state='booked'] {
+    pointer-events: none;
+  }
+
+  /* .chip/.chip-remove создаются через document.createElement в JS и не получают
+     data-astro-cid — обычный scoped <style> их не достанет, поэтому они здесь. */
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--color-surface-hover);
+    border-radius: 20px;
+    padding: 6px 6px 6px 16px;
+    font-size: 0.85rem;
+    color: var(--color-ink);
+  }
+  .chip-remove {
+    flex: none;
+    width: 22px;
+    height: 22px;
+    border: none;
+    border-radius: 50%;
+    background: var(--color-red);
+    color: var(--color-white);
+    font-size: 1rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: opacity 0.15s ease;
+  }
+  .chip-remove:hover {
+    opacity: 0.8;
+  }
+  .booking-seats-list li {
+    margin-bottom: 3px;
+  }
+</style>

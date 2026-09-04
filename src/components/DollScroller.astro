@@ -1,0 +1,65 @@
+---
+import { mainDoll } from '../data/site';
+---
+
+<div class="page-bg" aria-hidden="true">
+  <div class="pattern-layer"></div>
+  <img src={mainDoll} alt="" class="doll-layer" />
+</div>
+
+<style>
+  .page-bg {
+    position: fixed;
+    inset: 0;
+    z-index: -2;
+    background:
+      radial-gradient(60% 55% at 8% 92%, rgba(149, 52, 53, 0.35) 0%, rgba(149, 52, 53, 0) 60%),
+      radial-gradient(120% 100% at 100% 0%, #2b3b62 0%, var(--color-canvas) 55%);
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  /* едва заметная сетка из кругов — по мотивам официального пресс-волла фестиваля */
+  .pattern-layer {
+    position: absolute;
+    inset: -20%;
+    background-image: radial-gradient(circle, rgba(255, 255, 255, 0.05) 0 38%, transparent 40%);
+    background-size: 92px 92px;
+    animation: patternDrift 60s linear infinite, patternShimmer 7s ease-in-out infinite alternate;
+  }
+  @keyframes patternDrift {
+    from {
+      background-position: 0 0;
+    }
+    to {
+      background-position: 184px 92px;
+    }
+  }
+  @keyframes patternShimmer {
+    from {
+      opacity: 0.55;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  .doll-layer {
+    position: absolute;
+    /* отступ сверху — чтобы верх кокошника не прятался под хэдером */
+    top: 76px;
+    right: 4%;
+    height: calc(100vh - 76px);
+    height: calc(100dvh - 76px);
+    width: auto;
+    filter: drop-shadow(0 30px 70px rgba(0, 0, 0, 0.45));
+  }
+
+  @media (max-width: 640px) {
+    .doll-layer {
+      right: 50%;
+      transform: translateX(50%);
+      opacity: 0.5;
+    }
+  }
+</style>

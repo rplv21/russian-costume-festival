@@ -1,0 +1,247 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { festival, programme, contacts } from '../data/site';
+---
+
+<Layout
+  title="Русский костюм — Всероссийский фестиваль в Ярославле, 16–18 октября 2026"
+  description="Всероссийский фестиваль-конкурс «Русский костюм в городе Ярославле»: показы коллекций, выставки, ярмарка и гала-концерт. 16–18 октября 2026 года."
+>
+  <section class="hero container">
+    <p class="eyebrow">Всероссийский фестиваль · {festival.city}</p>
+    <h1>Русский костюм</h1>
+    <p class="hero-dates">{festival.dates.label}</p>
+    <p class="hero-lede">{festival.intro}</p>
+    <div class="hero-cta">
+      <a href="/bilety" class="btn btn-red">Билеты на гала-концерт</a>
+    </div>
+  </section>
+
+  <section class="section container days">
+    {festival.days.map((day) => (
+      <div class="day-card">
+        <span class="day-date">{day.date}</span>
+        <span class="day-title">{day.title}</span>
+        {day.note && <span class="day-note">{day.note}</span>}
+      </div>
+    ))}
+  </section>
+
+  <section class="section container">
+    <div class="section-head">
+      <h2>Традиции и современность</h2>
+    </div>
+    <p class="lede">
+      В фестивале участвуют лучшие художники-модельеры, коллективы творческих мастерских и
+      фольклорные ансамбли более чем из {festival.regionsCount} регионов России — от хранителей
+      этнографической реконструкции до современных авторских дизайнеров, работающих с
+      традиционными мотивами языком сегодняшней моды.
+    </p>
+  </section>
+
+  <section class="section container programme">
+    <div class="prog-col">
+      <h3>Конкурсная часть</h3>
+      <ul>
+        {programme.competitive.map((item) => (
+          <li>{item.title}{item.desc && <span class="muted"> — {item.desc}</span>}</li>
+        ))}
+      </ul>
+    </div>
+    <div class="prog-col">
+      <h3>Деловая программа</h3>
+      <ul>
+        {programme.business.map((item) => <li>{item}</li>)}
+      </ul>
+    </div>
+    <div class="prog-col">
+      <h3>Для гостей</h3>
+      <ul>
+        {programme.guests.map((item) => <li>{item}</li>)}
+      </ul>
+    </div>
+  </section>
+
+  <section class="section container nav-cards">
+    <a href="/o-festivale" class="nav-card">
+      <span>О фестивале</span>
+      <p>Учредители, цели, номинации 2026 года</p>
+    </a>
+    <a href="/dokumenty" class="nav-card">
+      <span>Документы</span>
+      <p>Положение о фестивале и формы заявок</p>
+    </a>
+    <a href="/vystavka" class="nav-card">
+      <span>Выставка</span>
+      <p>Кукла в традиционном костюме, костюмы, аксессуары</p>
+    </a>
+    <a href="/galereya" class="nav-card">
+      <span>Галерея</span>
+      <p>Фото фестиваля</p>
+    </a>
+  </section>
+
+  <section class="section container">
+    <div class="contact-strip">
+      <p class="eyebrow">По вопросам участия</p>
+      <p class="contact-line"><a href={contacts.orgPhoneHref}>{contacts.orgPhone}</a></p>
+      <p class="contact-line"><a href={`mailto:${contacts.confirmationEmail}`}>{contacts.confirmationEmail}</a></p>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .hero {
+    padding-block: clamp(64px, 10vw, 120px) clamp(40px, 6vw, 64px);
+  }
+  .hero h1 {
+    font-size: clamp(3.2rem, 9vw, 6.5rem);
+    margin-block: 12px 4px;
+  }
+  .hero-dates {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: var(--color-red);
+    margin-bottom: 20px;
+  }
+  .hero-lede {
+    max-width: 62ch;
+    font-size: 1.1rem;
+    color: var(--color-text-muted);
+  }
+  .hero-cta {
+    display: flex;
+    gap: 14px;
+    margin-top: 32px;
+    flex-wrap: wrap;
+  }
+
+  .days {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    padding-block: 0 clamp(40px, 6vw, 64px);
+  }
+  .day-card {
+    background: var(--color-surface);
+    border-radius: var(--radius-card);
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .day-date {
+    font-weight: 700;
+    color: var(--color-blue);
+  }
+  .day-title {
+    font-size: 1.3rem;
+    font-family: var(--font-display);
+    color: var(--color-ink);
+  }
+  .day-note {
+    display: inline-block;
+    align-self: flex-start;
+    background: var(--color-red);
+    color: var(--color-white);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 3px 10px;
+    border-radius: 20px;
+    text-shadow: none;
+    -webkit-text-stroke: 0;
+  }
+
+  .section-head h2 {
+    font-size: clamp(1.8rem, 3vw, 2.6rem);
+    margin-bottom: 18px;
+  }
+  .lede {
+    max-width: 76ch;
+    color: var(--color-text-muted);
+    font-size: 1.05rem;
+  }
+
+  .programme {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 32px;
+  }
+  .prog-col h3 {
+    font-size: 1.3rem;
+    margin-bottom: 14px;
+    color: var(--color-red);
+  }
+  .prog-col ul {
+    margin: 0;
+    padding-left: 18px;
+    color: var(--color-text);
+  }
+  .prog-col li {
+    margin-bottom: 8px;
+  }
+  .muted {
+    color: var(--color-text-muted);
+  }
+
+  .nav-cards {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+  }
+  .nav-card {
+    display: block;
+    background: var(--color-surface);
+    border: 1px solid var(--color-card-border);
+    border-radius: var(--radius-card);
+    padding: 24px;
+    text-decoration: none;
+    color: var(--color-ink);
+    transition: border-color 0.15s ease, transform 0.15s ease;
+  }
+  .nav-card:hover {
+    border-color: var(--color-red);
+    transform: translateY(-2px);
+  }
+  .nav-card span {
+    font-family: var(--font-display);
+    font-size: 1.4rem;
+    color: var(--color-blue);
+  }
+  .nav-card p {
+    margin-top: 8px;
+    font-size: 0.9rem;
+    color: var(--color-ink-muted);
+  }
+
+  .contact-strip {
+    background: var(--color-surface);
+    border-radius: var(--radius-card);
+    padding: 32px;
+  }
+  .contact-line {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-top: 6px;
+  }
+  .contact-line a {
+    text-decoration: none;
+    color: var(--color-blue);
+  }
+
+  @media (max-width: 900px) {
+    .days,
+    .programme,
+    .nav-cards {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+  @media (max-width: 600px) {
+    .days,
+    .programme,
+    .nav-cards {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

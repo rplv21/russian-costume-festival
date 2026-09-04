@@ -1,0 +1,368 @@
+---
+import { festival, contacts, partners, credits, pushkinCard, mainDoll } from '../data/site';
+import PrivacyContent from './PrivacyContent.astro';
+---
+
+<footer class="site-footer">
+  <img src={mainDoll} alt="" class="footer-doll" id="footer-doll" aria-hidden="true" />
+  <div class="container footer-grid">
+    <div>
+      <p class="brand-name">Русский костюм</p>
+      <p class="muted">{festival.city}, {festival.dates.label}</p>
+      <p class="muted small">
+        {festival.organizers.map((o) => <span>{o}</span>)}
+      </p>
+    </div>
+
+    <div>
+      <p class="col-title">Разделы</p>
+      <a href="/o-festivale">О фестивале</a>
+      <a href="/uchastnikam">Участники</a>
+      <a href="/vystavka">Выставка</a>
+      <a href="/galereya">Галерея</a>
+      <a href="/dokumenty">Документы</a>
+    </div>
+
+    <div>
+      <p class="col-title">Контакты</p>
+      <a href={contacts.orgPhoneHref}>{contacts.orgPhone}</a>
+      <a href={`mailto:${contacts.confirmationEmail}`}>{contacts.confirmationEmail}</a>
+      <a href={contacts.website} target="_blank" rel="noopener">{contacts.websiteLabel}</a>
+      <a href={contacts.vk.odnt} target="_blank" rel="noopener">ВКонтакте ОДНТ</a>
+      <a href={contacts.vk.festival} target="_blank" rel="noopener">ВКонтакте фестиваля</a>
+    </div>
+  </div>
+
+  <div class="container partners-row">
+    <div class="partners-col">
+      <p class="col-title">Организаторы и партнёры</p>
+      <div class="partners-list">
+        {partners.map((p) => (
+          <a href={p.url} target="_blank" rel="noopener" class="partner-link">{p.name}</a>
+        ))}
+      </div>
+    </div>
+    <a href={pushkinCard.url} target="_blank" rel="noopener" class="pushkin-card">
+      <img src={pushkinCard.logo} alt="Пушкинская карта" loading="lazy" />
+    </a>
+  </div>
+
+  <div class="container footer-bottom">
+    <span>
+      © {festival.year} {festival.fullName} ·
+      <a href="#" class="privacy-modal-trigger">Политика конфиденциальности</a>
+    </span>
+    <span class="credit">
+      Сайт разработан и создан <a href={credits.developer.url} target="_blank" rel="noopener">{credits.developer.name}</a>.
+      Ответственный за маркетинг <a href={credits.marketing.url} target="_blank" rel="noopener">{credits.marketing.name}</a>
+      · <a href="/admin" class="admin-link">Панель администратора</a>
+    </span>
+  </div>
+</footer>
+
+<div id="privacy-modal" class="privacy-modal-overlay" hidden>
+  <div class="privacy-modal" role="dialog" aria-modal="true" aria-labelledby="privacy-modal-title">
+    <div class="privacy-modal-header">
+      <h2 id="privacy-modal-title" class="privacy-modal-title">Политика конфиденциальности</h2>
+      <button type="button" class="privacy-modal-close" aria-label="Закрыть">×</button>
+    </div>
+    <div class="privacy-modal-body">
+      <PrivacyContent />
+    </div>
+  </div>
+</div>
+
+<script>
+  const triggers = document.querySelectorAll('.privacy-modal-trigger');
+  const modal = document.getElementById('privacy-modal');
+  const closeBtn = modal?.querySelector('.privacy-modal-close');
+
+  function openModal(e: Event) {
+    e.preventDefault();
+    if (modal) modal.hidden = false;
+  }
+  function closeModal() {
+    if (modal) modal.hidden = true;
+  }
+
+  triggers.forEach((trigger) => trigger.addEventListener('click', openModal));
+  closeBtn?.addEventListener('click', closeModal);
+  modal?.addEventListener('click', (e) => {
+    if (e.target === modal) closeModal();
+  });
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modal && !modal.hidden) closeModal();
+  });
+
+  // Маленькая кукла, гуляющая по верхней кромке футера: сама ходит туда-сюда,
+  // убегает от курсора по горизонтали, наклоняется в сторону, обратную движению.
+  const footerDoll = document.getElementById('footer-doll') as HTMLImageElement | null;
+  const footerEl = document.querySelector('.site-footer') as HTMLElement | null;
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  if (footerDoll && footerEl && !prefersReducedMotion) {
+    const MARGIN = 16;
+    const FLEE_DISTANCE = 200;
+    const FLEE_STEP = 70;
+    const EASE = 0.05;
+    const MAX_LEAN = 12;
+    const LEAN_FACTOR = 5;
+
+    let dollWidth = footerDoll.getBoundingClientRect().width || 34;
+    let trackWidth = footerEl.clientWidth;
+    let minX = MARGIN;
+    let maxX = Math.max(minX, trackWidth - MARGIN - dollWidth);
+    let posX = (minX + maxX) / 2;
+    let targetX = posX;
+    let lastX = posX;
+    let mouseX = -9999;
+    let mouseY = -9999;
+
+    const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
+
+    function recalcTrack() {
+      dollWidth = footerDoll!.getBoundingClientRect().width || dollWidth;
+      trackWidth = footerEl!.clientWidth;
+      minX = MARGIN;
+      maxX = Math.max(minX, trackWidth - MARGIN - dollWidth);
+      posX = clamp(posX, minX, maxX);
+      targetX = clamp(targetX, minX, maxX);
+    }
+
+    function pickIdleTarget() {
+      targetX = minX + Math.random() * (maxX - minX);
+    }
+
+    window.addEventListener('resize', recalcTrack);
+    window.addEventListener('mousemove', (e) => {
+      mouseX = e.clientX;
+      mouseY = e.clientY;
+    });
+    window.addEventListener('mouseleave', () => {
+      mouseX = -9999;
+      mouseY = -9999;
+    });
+
+    pickIdleTarget();
+    setInterval(pickIdleTarget, 3200 + Math.random() * 2200);
+
+    // Обычный requestAnimationFrame не тикает в headless-браузерах без реального
+    // рендер-цикла (в т.ч. в некоторых окружениях предпросмотра) — setTimeout(~60fps)
+    // работает везде одинаково надёжно и для этой декоративной анимации не хуже.
+    function tick() {
+      const rect = footerDoll!.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top;
+      const dx = mouseX - centerX;
+      const dy = mouseY - centerY;
+      const dist = Math.hypot(dx, dy);
+
+      if (dist <= FLEE_DISTANCE) {
+        const fleeDir = dx >= 0 ? -1 : 1;
+        targetX = clamp(posX + fleeDir * FLEE_STEP, minX, maxX);
+      }
+
+      posX += (targetX - posX) * EASE;
+      const velocity = posX - lastX;
+      lastX = posX;
+      const lean = clamp(-velocity * LEAN_FACTOR, -MAX_LEAN, MAX_LEAN);
+
+      footerDoll!.style.transform = `translate(${posX}px, -100%) rotate(${lean}deg)`;
+      setTimeout(tick, 16);
+    }
+
+    setTimeout(tick, 16);
+  }
+</script>
+
+<style>
+  .site-footer {
+    position: relative;
+    background: rgba(22, 33, 61, 0.88);
+    backdrop-filter: blur(8px);
+    border-top: 1px solid var(--color-border);
+    color: var(--color-white);
+    text-shadow: none;
+    -webkit-text-stroke: 0;
+  }
+  .footer-doll {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 34px;
+    height: auto;
+    z-index: 2;
+    pointer-events: none;
+    will-change: transform;
+    filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.35));
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .footer-doll {
+      display: none;
+    }
+  }
+  .footer-grid {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr 1fr;
+    gap: 32px;
+    padding-block: clamp(40px, 6vw, 64px);
+  }
+  .footer-grid a {
+    display: block;
+    text-decoration: none;
+    color: var(--color-white);
+    opacity: 0.88;
+    padding-block: 4px;
+    font-size: 0.92rem;
+  }
+  .footer-grid a:hover {
+    opacity: 1;
+    text-decoration: underline;
+  }
+  .brand-name {
+    font-family: var(--font-display);
+    font-size: 1.6rem;
+    color: var(--color-white);
+    margin-bottom: 6px;
+  }
+  .muted {
+    opacity: 0.75;
+    font-size: 0.9rem;
+    margin: 0 0 4px;
+  }
+  .muted.small span {
+    display: block;
+  }
+  .col-title {
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    opacity: 0.6;
+    margin-bottom: 10px;
+  }
+
+  .partners-row {
+    border-top: 1px solid rgba(255, 255, 255, 0.18);
+    padding-block: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .partners-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .partner-link {
+    text-decoration: none;
+    color: var(--color-white);
+    opacity: 0.82;
+    font-size: 0.86rem;
+  }
+  .partner-link:hover {
+    opacity: 1;
+    text-decoration: underline;
+  }
+  .pushkin-card {
+    flex: none;
+    margin-left: auto;
+    display: flex;
+    align-items: flex-end;
+    height: 96px;
+  }
+  .pushkin-card img {
+    height: 100%;
+    width: auto;
+    object-fit: contain;
+  }
+
+  .footer-bottom {
+    border-top: 1px solid rgba(255, 255, 255, 0.18);
+    padding-block: 18px;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    font-size: 0.78rem;
+    opacity: 0.65;
+  }
+  .credit a {
+    color: var(--color-white);
+  }
+  .privacy-modal-trigger {
+    color: var(--color-white);
+    text-decoration: underline;
+  }
+  @media (max-width: 720px) {
+    .footer-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .privacy-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 300;
+    background: rgba(26, 26, 31, 0.55);
+    backdrop-filter: blur(4px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  /* [hidden] в author-CSS перебивает UA-правило display:none по каскаду —
+     явно возвращаем flex только когда атрибут hidden снят */
+  .privacy-modal-overlay:not([hidden]) {
+    display: flex;
+  }
+  .privacy-modal {
+    width: 100%;
+    max-width: 680px;
+    max-height: 82vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--color-surface);
+    color: var(--color-ink);
+    text-shadow: none;
+    border-radius: var(--radius-card);
+    overflow: hidden;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4);
+  }
+  .privacy-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--color-card-border);
+    flex-shrink: 0;
+  }
+  .privacy-modal-title {
+    font-size: 1.25rem;
+    color: var(--color-blue);
+    margin: 0;
+  }
+  .privacy-modal-close {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1px solid var(--color-card-border);
+    background: transparent;
+    color: var(--color-ink);
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    transition: border-color 0.2s ease, color 0.2s ease;
+  }
+  .privacy-modal-close:hover {
+    border-color: var(--color-red);
+    color: var(--color-red);
+  }
+  .privacy-modal-body {
+    padding: 20px 24px 28px;
+    overflow-y: auto;
+  }
+</style>

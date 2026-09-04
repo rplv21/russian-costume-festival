@@ -1,0 +1,35 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { contacts } from '../data/site';
+---
+
+<Layout
+  title="Галерея — Русский костюм"
+  description="Фотогалерея Всероссийского фестиваля «Русский костюм в городе Ярославле» — пополняется по мере проведения фестиваля."
+>
+  <section class="section container stub">
+    <p class="eyebrow">Галерея</p>
+    <h1>Фото фестиваля</h1>
+    <p class="lede">
+      Раздел наполняется фотографиями коллекций, дефиле и гала-концерта по ходу подготовки и
+      проведения фестиваля 16–18 октября 2026 года. Пока фотографий нет — самые свежие кадры
+      публикуются в official-группе фестиваля во «ВКонтакте».
+    </p>
+    <a href={contacts.vk.festival} target="_blank" rel="noopener" class="btn btn-red">
+      Смотреть в VK
+    </a>
+  </section>
+</Layout>
+
+<style>
+  .stub {
+    text-align: center;
+    padding-block: clamp(80px, 12vw, 140px);
+  }
+  .lede {
+    max-width: 60ch;
+    margin: 18px auto 28px;
+    color: var(--color-text-muted);
+    font-size: 1.05rem;
+  }
+</style>

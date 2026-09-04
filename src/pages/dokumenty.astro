@@ -1,0 +1,94 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { documents } from '../data/site';
+---
+
+<Layout
+  title="Документы — Русский костюм"
+  description="Положение о фестивале и все формы заявок для участников, спикеров деловой программы, участников выставки-ярмарки, СМИ и блогеров."
+>
+  <section class="section container">
+    <p class="eyebrow">Документы</p>
+    <h1>Положение и формы заявок</h1>
+    <p class="lede">
+      Все официальные документы фестиваля «Русский костюм в городе Ярославле» — скачивайте нужную
+      форму, заполняйте в редактируемом виде и отправляйте в Оргкомитет по инструкции на странице
+      «Участникам».
+    </p>
+
+    <div class="docs-list">
+      {documents.map((doc) => (
+        <a href={doc.href} class="doc-row" download>
+          <span class="doc-format">{doc.format}</span>
+          <span class="doc-body">
+            <span class="doc-title">{doc.title}</span>
+            <span class="doc-desc">{doc.description}</span>
+          </span>
+          <span class="doc-arrow" aria-hidden="true">↓</span>
+        </a>
+      ))}
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .lede {
+    max-width: 76ch;
+    color: var(--color-text-muted);
+    font-size: 1.05rem;
+    margin-top: 14px;
+    margin-bottom: 32px;
+  }
+  .docs-list {
+    display: grid;
+    gap: 1px;
+    background: var(--color-card-border);
+    border: 1px solid var(--color-card-border);
+    border-radius: var(--radius-card);
+    overflow: hidden;
+  }
+  .doc-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: var(--color-surface);
+    padding: 20px 22px;
+    text-decoration: none;
+    color: var(--color-ink);
+    transition: background 0.15s ease;
+  }
+  .doc-row:hover {
+    background: var(--color-surface-hover);
+  }
+  .doc-format {
+    flex: none;
+    width: 52px;
+    text-align: center;
+    background: var(--color-blue);
+    color: var(--color-white);
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 4px 0;
+    border-radius: 6px;
+    text-shadow: none;
+    -webkit-text-stroke: 0;
+  }
+  .doc-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .doc-title {
+    font-weight: 600;
+  }
+  .doc-desc {
+    font-size: 0.86rem;
+    color: var(--color-ink-muted);
+  }
+  .doc-arrow {
+    flex: none;
+    color: var(--color-red);
+    font-size: 1.2rem;
+  }
+</style>

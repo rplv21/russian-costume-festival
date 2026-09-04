@@ -1,0 +1,66 @@
+---
+import Layout from '../layouts/Layout.astro';
+import SeatMap from '../components/SeatMap.astro';
+import { festival, contacts } from '../data/site';
+---
+
+<Layout
+  title="Билеты — Русский костюм"
+  description="Бесплатное бронирование билетов на 16 и 17 октября 2026 года и информация о билетах на гала-концерт фестиваля «Русский костюм в городе Ярославле»."
+>
+  <section class="section container">
+    <p class="eyebrow">Билеты</p>
+    <h1>Бронирование на бесплатные дни</h1>
+    <p class="lede">
+      16 и 17 октября вход на фестиваль свободный по предварительной регистрации. Выберите день и
+      места на схеме зала — билет в формате PDF придёт на почту и будет доступен для скачивания
+      сразу после бронирования.
+    </p>
+
+    <SeatMap />
+  </section>
+
+  <section class="section container stub">
+    <p class="eyebrow">Гала-концерт · 18 октября</p>
+    <h2>Билеты на гала-концерт</h2>
+    <p class="lede">
+      Продажа билетов ещё не открыта — площадка и сервис бронирования уточняются. Следите за
+      анонсом в официальной группе фестиваля или узнайте о наличии билетов напрямую у Оргкомитета.
+    </p>
+    <div class="contacts">
+      <a href={contacts.orgPhoneHref} class="btn btn-red">{contacts.orgPhone}</a>
+      <a href={contacts.vk.festival} target="_blank" rel="noopener" class="btn btn-outline">
+        Новости в VK
+      </a>
+    </div>
+    <p class="note">{festival.dates.label}, {festival.city}</p>
+  </section>
+</Layout>
+
+<style>
+  .lede {
+    max-width: 68ch;
+    color: var(--color-text-muted);
+    font-size: 1.05rem;
+    margin-top: 14px;
+  }
+  .stub {
+    text-align: center;
+    padding-block: clamp(56px, 8vw, 96px);
+    border-top: 1px solid var(--color-border);
+  }
+  .stub .lede {
+    margin: 18px auto 28px;
+  }
+  .contacts {
+    display: flex;
+    gap: 14px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .note {
+    margin-top: 24px;
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+  }
+</style>

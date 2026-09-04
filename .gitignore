@@ -1,0 +1,37 @@
+# build output
+dist/
+# generated types
+.astro/
+
+# dependencies
+node_modules/
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# environment variables
+.env
+.env.production
+.env*.local
+
+# бронирования билетов (ФИО/e-mail зрителей) — не должно попадать в репозиторий
+/data/bookings.json
+
+# macOS-specific files
+.DS_Store
+
+# jetbrains setting folder
+.idea/
+
+# raw client-supplied source assets (kept locally, not part of the deployed site)
+/*.docx
+/*.pdf
+/*.eps
+/*.otf
+/Кукла.*.png
+/РК*.jpg
+/Герб ЯО.svg
+/Пушкинская карта. Лого.png

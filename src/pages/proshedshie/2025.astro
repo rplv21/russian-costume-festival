@@ -1,0 +1,53 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { contacts } from '../../data/site';
+---
+
+<Layout
+  title="Русский костюм 2025 — архив фестиваля"
+  description="Архив Всероссийского фестиваля «Русский костюм в городе Ярославле» 2025 года."
+>
+  <section class="section container archive">
+    <div class="archive-text">
+      <p class="eyebrow">Прошедшие фестивали</p>
+      <h1>Русский костюм 2025</h1>
+      <p class="lede">
+        Полный отчёт, список победителей и фотогалерея прошлого фестиваля появятся здесь позже.
+        Пока — афиша фестиваля 2025 года.
+      </p>
+      <a href={contacts.vk.festival} target="_blank" rel="noopener" class="btn btn-outline">
+        Материалы фестиваля в VK
+      </a>
+    </div>
+    <img src="/images/poster-2025.jpg" alt="Афиша фестиваля «Русский костюм» 2025 года" class="poster" />
+  </section>
+</Layout>
+
+<style>
+  .archive {
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: clamp(32px, 5vw, 64px);
+    align-items: center;
+  }
+  .lede {
+    max-width: 56ch;
+    color: var(--color-text-muted);
+    font-size: 1.05rem;
+    margin: 16px 0 24px;
+  }
+  .poster {
+    border-radius: var(--radius-card);
+    box-shadow: 0 24px 48px rgba(39, 52, 117, 0.18);
+    max-width: 420px;
+    margin-inline: auto;
+  }
+  @media (max-width: 860px) {
+    .archive {
+      grid-template-columns: 1fr;
+    }
+    .archive-text {
+      order: 2;
+    }
+  }
+</style>

@@ -1,0 +1,32 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { contacts } from '../../data/site';
+---
+
+<Layout
+  title="Русский костюм 2024 — архив фестиваля"
+  description="Архив Всероссийского фестиваля «Русский костюм в городе Ярославле» 2024 года."
+  noindex
+>
+  <section class="section container stub">
+    <p class="eyebrow">Прошедшие фестивали</p>
+    <h1>Русский костюм 2024</h1>
+    <p class="lede">Материалы фестиваля 2024 года пока готовятся к публикации.</p>
+    <a href={contacts.vk.festival} target="_blank" rel="noopener" class="btn btn-outline">
+      Архив в VK
+    </a>
+  </section>
+</Layout>
+
+<style>
+  .stub {
+    text-align: center;
+    padding-block: clamp(80px, 12vw, 140px);
+  }
+  .lede {
+    max-width: 56ch;
+    margin: 16px auto 28px;
+    color: var(--color-text-muted);
+    font-size: 1.05rem;
+  }
+</style>

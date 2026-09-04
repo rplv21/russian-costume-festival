@@ -1,0 +1,289 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { participation, contacts, documents, nominations } from '../data/site';
+
+const applicationDocs = documents.filter((d) => d.format === 'DOCX');
+const polozhenie = documents.find((d) => d.title === 'Положение о фестивале');
+---
+
+<Layout
+  title="Участникам — Русский костюм"
+  description="Кто может подать заявку на фестиваль «Русский костюм», сроки подачи, организационный взнос и порядок оформления документов."
+>
+  <section class="section container">
+    <p class="eyebrow">Участникам</p>
+    <h1>Как принять участие</h1>
+    <p class="lede">{participation.whoCanApply}</p>
+  </section>
+
+  <section class="section container" id="kak-podat">
+    <h2>Как подать заявку</h2>
+    <p class="lede">
+      Заявка подаётся в редактируемом формате Word с приложением скан-копии страницы, заверенной
+      подписью мастера или руководителя коллектива. Заявки, присланные только в отсканированном
+      виде без электронного текстового варианта, к рассмотрению не принимаются.
+    </p>
+
+    <ol class="steps">
+      <li>
+        <span class="step-num">1</span>
+        <div>
+          <h3>Скачайте нужную форму</h3>
+          <p>Заявка на участие в конкурсной программе, в деловой части или в выставке-ярмарке — в зависимости от формата.</p>
+        </div>
+      </li>
+      <li>
+        <span class="step-num">2</span>
+        <div>
+          <h3>Заполните и подпишите</h3>
+          <p>Распечатайте, заполните от руки или в редакторе, поставьте подпись мастера/руководителя коллектива.</p>
+        </div>
+      </li>
+      <li>
+        <span class="step-num">3</span>
+        <div>
+          <h3>Отсканируйте и приложите материалы</h3>
+          <p>Скан подписанной страницы + текстовый файл заявки + фото конкурсных работ (jpg/png/tif, не менее 1 МБ), видео дефиле при показе.</p>
+        </div>
+      </li>
+      <li>
+        <span class="step-num">4</span>
+        <div>
+          <h3>Отправьте на почту Оргкомитета</h3>
+          <p>
+            <a href={`mailto:${contacts.applicationsEmail}`}>{contacts.applicationsEmail}</a>
+            — в теме письма укажите: РУССКИЙ КОСТЮМ, регион, фамилию мастера или название коллектива.
+          </p>
+        </div>
+      </li>
+    </ol>
+
+    <div class="docs-grid">
+      {applicationDocs.map((doc) => (
+        <a href={doc.href} class="doc-card" download>
+          <span class="doc-format">{doc.format}</span>
+          <span class="doc-title">{doc.title}</span>
+          <span class="doc-desc">{doc.description}</span>
+        </a>
+      ))}
+    </div>
+    {polozhenie && (
+      <p class="polozhenie-link">
+        Полные условия — в <a href={polozhenie.href} download>Положении о фестивале (PDF)</a>.
+      </p>
+    )}
+  </section>
+
+  <section class="section container">
+    <h2>Сроки</h2>
+    <div class="deadline-list">
+      {participation.deadlines.map((d) => (
+        <div class="deadline-row">
+          <span class="deadline-date">{d.date}</span>
+          <span>{d.label}</span>
+        </div>
+      ))}
+    </div>
+  </section>
+
+  <section class="section container two-col">
+    <div>
+      <h2>Организационный взнос</h2>
+      <p>{participation.fee}</p>
+      <h2 class="mt">Трансфер</h2>
+      <p>{participation.transfer}</p>
+    </div>
+    <div>
+      <h2>Условия демонстрации коллекций</h2>
+      <ul>
+        {participation.collectionRules.map((r) => <li>{r}</li>)}
+      </ul>
+    </div>
+  </section>
+
+  <section class="section container">
+    <h2>Номинации</h2>
+    <ul class="nom-list">
+      {nominations.map((n) => <li>{n.title}</li>)}
+    </ul>
+    <p class="lede">{participation.awards}</p>
+  </section>
+
+  <section class="section container">
+    <h2>Деловая программа для слушателей</h2>
+    <p class="lede">{participation.businessTrack}</p>
+  </section>
+
+  <section class="section container">
+    <div class="contact-strip">
+      <p class="eyebrow">Остались вопросы?</p>
+      <p class="contact-line"><a href={contacts.orgPhoneHref}>{contacts.orgPhone}</a></p>
+      <p class="contact-line"><a href={`mailto:${contacts.confirmationEmail}`}>{contacts.confirmationEmail}</a></p>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .lede {
+    max-width: 76ch;
+    color: var(--color-text-muted);
+    font-size: 1.05rem;
+    margin-top: 14px;
+  }
+  h2 {
+    font-size: clamp(1.5rem, 2.6vw, 2rem);
+    margin-bottom: 16px;
+  }
+  .mt {
+    margin-top: 28px;
+  }
+
+  .steps {
+    list-style: none;
+    margin: 32px 0;
+    padding: 0;
+    display: grid;
+    gap: 20px;
+  }
+  .steps li {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+  }
+  .step-num {
+    flex: none;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--color-red);
+    color: var(--color-white);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    text-shadow: none;
+    -webkit-text-stroke: 0;
+  }
+  .steps h3 {
+    font-size: 1.05rem;
+    color: var(--color-heading);
+    margin-bottom: 4px;
+  }
+  .steps p {
+    color: var(--color-text-muted);
+    font-size: 0.94rem;
+  }
+
+  .docs-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+  .doc-card {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    background: var(--color-surface);
+    border-radius: var(--radius-card);
+    padding: 20px;
+    text-decoration: none;
+    color: var(--color-ink);
+    border: 1px solid transparent;
+    transition: border-color 0.15s ease;
+  }
+  .doc-card:hover {
+    border-color: var(--color-red);
+  }
+  .doc-format {
+    align-self: flex-start;
+    background: var(--color-blue);
+    color: var(--color-white);
+    font-size: 0.68rem;
+    letter-spacing: 0.06em;
+    padding: 2px 8px;
+    border-radius: 6px;
+    text-shadow: none;
+    -webkit-text-stroke: 0;
+  }
+  .doc-title {
+    font-weight: 600;
+  }
+  .doc-desc {
+    font-size: 0.85rem;
+    color: var(--color-ink-muted);
+  }
+  .polozhenie-link {
+    margin-top: 18px;
+    font-size: 0.95rem;
+  }
+  .polozhenie-link a {
+    color: var(--color-red);
+    font-weight: 600;
+  }
+
+  .deadline-list {
+    display: grid;
+    gap: 1px;
+    background: var(--color-card-border);
+    border: 1px solid var(--color-card-border);
+    border-radius: var(--radius-card);
+    overflow: hidden;
+  }
+  .deadline-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    background: var(--color-surface);
+    color: var(--color-ink);
+    padding: 16px 20px;
+  }
+  .deadline-date {
+    font-weight: 700;
+    color: var(--color-red);
+    white-space: nowrap;
+  }
+
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 48px;
+  }
+  .two-col ul {
+    padding-left: 18px;
+    color: var(--color-text-muted);
+  }
+  .two-col li {
+    margin-bottom: 8px;
+  }
+
+  .nom-list {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px 24px;
+    padding-left: 18px;
+    margin-bottom: 24px;
+  }
+
+  .contact-strip {
+    background: var(--color-surface);
+    border-radius: var(--radius-card);
+    padding: 32px;
+  }
+  .contact-line {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-top: 6px;
+  }
+  .contact-line a {
+    text-decoration: none;
+    color: var(--color-blue);
+  }
+
+  @media (max-width: 800px) {
+    .docs-grid,
+    .two-col,
+    .nom-list {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

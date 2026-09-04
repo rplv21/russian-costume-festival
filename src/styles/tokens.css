@@ -1,0 +1,34 @@
+:root {
+  /* Бренд-палитра фестиваля */
+  --color-white: #ffffff;
+  --color-red: #e20a17;
+  --color-red-dim: #a80710;
+  --color-blue: #273475;
+  --color-blue-dim: #1a234f;
+
+  /* Тёмная тема (по мотивам официального пресс-волла фестиваля этого года):
+     глубокий синий фон вместо белого. Заголовки на нём — светлые. */
+  --color-canvas: #16213d;
+  --color-text: #eef0f6;
+  --color-text-muted: #9aa2ba;
+  --color-border: rgba(255, 255, 255, 0.14);
+  --color-heading: #ffffff;
+
+  /* Карточки/блоки поверх тёмного фона — белые, с тёмным/синим/красным текстом. */
+  --color-surface: #ffffff;
+  --color-surface-hover: #ece9e4;
+  --color-card-border: rgba(26, 26, 31, 0.12);
+  --color-ink: #1a1a1f;
+  --color-ink-muted: #55565f;
+
+  /* Радиусы и сетка */
+  --radius-card: 12px;
+  --radius-button: 999px;
+  --page-max: 1240px;
+  --section-gap: 104px;
+  --section-gap-m: 56px;
+
+  /* Шрифты */
+  --font-display: 'Druzhok', 'Playfair Display', Georgia, serif;
+  --font-body: 'Montserrat', ui-sans-serif, system-ui, -apple-system, sans-serif;
+}

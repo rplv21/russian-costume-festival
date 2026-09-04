@@ -1,0 +1,113 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout
+  title="Выставка — Русский костюм"
+  description="Выставка «Кукла в традиционном костюме», выставка костюмов и аксессуаров в рамках фестиваля «Русский костюм в городе Ярославле»."
+>
+  <section class="section container">
+    <p class="eyebrow">Выставка</p>
+    <h1>Конкурсная выставка</h1>
+    <p class="lede">
+      Часть конкурсной программы фестиваля — экспозиция кукол, костюмов и аксессуаров, созданных
+      современными модельерами и мастерами России.
+    </p>
+
+    <div class="expo-grid">
+      <div class="expo-card">
+        <h3>Выставка<br />«Кукла в традиционном костюме»</h3>
+      </div>
+      <div class="expo-card">
+        <h3>Выставка<br />Костюмов и аксессуаров</h3>
+      </div>
+    </div>
+  </section>
+
+  <section class="section container">
+    <h2>Что подготовить для участия в выставке</h2>
+    <ul class="req-list">
+      <li>Авторские этикетки и аннотацию для выставочного варианта показа костюмов и кукол.</li>
+      <li>Списки работ в двух экземплярах.</li>
+      <li>Подставки — для кукол, головных уборов, украшений и других мелких аксессуаров.</li>
+      <li>Не более 8 экспонатов на одну коллекцию при экспонировании в формате выставки.</li>
+    </ul>
+    <p class="lede">
+      Возможно размещение планшетов, стендов, манекенов и собственного выставочного оборудования
+      для специальных авторских или коллективных проектов. Манекены предоставляются конкурсантам
+      по согласованию и в зависимости от возможностей Оргкомитета — после подтверждения участия.
+    </p>
+  </section>
+
+  <section class="section container">
+    <div class="cta-block">
+      <h2>Хотите показать коллекцию на сцене?</h2>
+      <p class="lede">
+        Помимо выставки, коллекцию можно представить в формате театрализованного показа/дефиле —
+        подробности и условия смотрите на странице «Участникам».
+      </p>
+      <a href="/uchastnikam#kak-podat" class="btn btn-red">Как подать заявку</a>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .lede {
+    max-width: 76ch;
+    color: var(--color-text-muted);
+    font-size: 1.05rem;
+    margin-top: 14px;
+  }
+  h2 {
+    font-size: clamp(1.5rem, 2.6vw, 2rem);
+    margin-bottom: 16px;
+  }
+  .expo-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin-top: 28px;
+  }
+  .expo-card {
+    background: var(--color-surface);
+    border-radius: var(--radius-card);
+    padding: 24px;
+  }
+  .expo-card h3 {
+    font-family: var(--font-display);
+    font-size: 1.4rem;
+    color: var(--color-blue);
+    line-height: 1.25;
+  }
+  .req-list {
+    max-width: 76ch;
+    padding-left: 18px;
+    color: var(--color-text);
+    margin-bottom: 20px;
+  }
+  .req-list li {
+    margin-bottom: 8px;
+  }
+  .cta-block {
+    background: var(--color-blue);
+    color: var(--color-white);
+    border-radius: var(--radius-card);
+    padding: clamp(32px, 5vw, 48px);
+    text-shadow: none;
+    -webkit-text-stroke: 0;
+  }
+  .cta-block h2 {
+    color: var(--color-white);
+  }
+  .cta-block .lede {
+    color: rgba(255, 255, 255, 0.82);
+  }
+  .cta-block .btn {
+    margin-top: 20px;
+  }
+  @media (max-width: 700px) {
+    .expo-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

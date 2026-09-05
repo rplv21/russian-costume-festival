@@ -83,7 +83,6 @@ export const POST: APIRoute = async ({ request }) => {
   if (isMailConfigured()) {
     sendTicketsEmail({
       to: cleanEmail,
-      name: cleanName,
       dayLabel,
       bookingId: reserved.bookingId,
       seatLabels: seatIdList.map((seatId) => seatLabel(seatId)),

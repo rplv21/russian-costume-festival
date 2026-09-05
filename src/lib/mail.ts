@@ -12,7 +12,6 @@ export function isMailConfigured(): boolean {
 
 export async function sendTicketsEmail(params: {
   to: string;
-  name: string;
   dayLabel: string;
   bookingId: string;
   seatLabels: string[];
@@ -38,7 +37,7 @@ export async function sendTicketsEmail(params: {
         to: params.to,
         subject: `Ваши билеты — ${festival.shortName}, ${params.dayLabel}`,
         text:
-          `Здравствуйте, ${params.name}!\n\n` +
+          `Здравствуйте!\n\n` +
           `Ваша бронь №${params.bookingId} на фестиваль «${festival.fullName}» подтверждена.\n` +
           `День: ${params.dayLabel}.\n` +
           `Места:\n${seatsList}\n\n` +
@@ -46,7 +45,8 @@ export async function sendTicketsEmail(params: {
           `Если вы забронировали билеты, но не сможете посетить мероприятие — пожалуйста, сообщите об этом заранее: ` +
           `позвоните в Областной Дом народного творчества по номеру ${contacts.orgPhone} и попросите отменить бронь, ` +
           `чтобы места достались другим зрителям.\n\n` +
-          `По вопросам: ${contacts.orgPhone}, ${contacts.confirmationEmail}`,
+          `По всем вопросам обращайтесь в администрацию Ярославского Областного Дома народного творчества:\n` +
+          `${contacts.orgPhone}, ${contacts.confirmationEmail}`,
         attachments: [
           {
             filename: params.pdfFileName,

@@ -23,7 +23,7 @@ export async function sendTicketsEmail(params: {
     return false;
   }
 
-  const seatsList = params.seatLabels.map((label) => `— ${label}`).join('\n');
+  const seatsList = params.seatLabels.map((label) => `• ${label}`).join('\n');
 
   try {
     const res = await fetch('https://api.resend.com/emails', {
@@ -38,8 +38,8 @@ export async function sendTicketsEmail(params: {
         subject: `Ваши билеты — ${festival.shortName}, ${params.dayLabel}`,
         text:
           `Здравствуйте!\n\n` +
-          `Ваша бронь №${params.bookingId} на фестиваль «${festival.fullName}» подтверждена.\n` +
-          `День: ${params.dayLabel}.\n` +
+          `Ваша бронь №${params.bookingId} на фестиваль «${festival.fullName}» подтверждена.\n\n` +
+          `Дата:\n• ${params.dayLabel}.\n\n` +
           `Места:\n${seatsList}\n\n` +
           `Билеты — во вложении (PDF, тот же файл, что вы уже могли скачать на сайте). Возьмите с собой паспорт.\n\n` +
           `Если вы забронировали билеты, но не сможете посетить мероприятие — пожалуйста, сообщите об этом заранее: ` +

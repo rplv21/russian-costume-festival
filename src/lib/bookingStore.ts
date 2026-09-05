@@ -71,9 +71,27 @@ export function reserveSeats(params: {
     const store = await readStore();
     const booked = new Set(store.bookedSeats[params.day] ?? []);
     const takenSeatIds = params.seatIds.filter((id) => booked.has(id));
+
     if (takenSeatIds.length > 0) {
+      // Повторная отправка той же формы (например, клиент не получил ответ на
+      // первую попытку из-за сетевого сбоя, хотя бронь уже сохранилась) не
+      // должна выглядеть как отказ: если ВСЕ запрошенные места целиком
+      // совпадают с одной существующей бронью на тот же email — возвращаем
+      // её же id вместо создания дубликата или ошибки "места заняты".
+      const seatSet = new Set(params.seatIds);
+      const existing = store.bookings.find(
+        (b) =>
+          b.day === params.day &&
+          b.email.trim().toLowerCase() === params.email.trim().toLowerCase() &&
+          b.seatIds.length === seatSet.size &&
+          b.seatIds.every((id) => seatSet.has(id)),
+      );
+      if (existing) {
+        return { ok: true, bookingId: existing.id } as const;
+      }
       return { ok: false, reason: 'taken', takenSeatIds } as const;
     }
+
     for (const id of params.seatIds) booked.add(id);
     store.bookedSeats[params.day] = Array.from(booked);
 

@@ -8,8 +8,31 @@ function normalizedPhone(phone: string | undefined | null): string {
   return (phone ?? '').replace(/\D/g, '');
 }
 
+// Локальный файл — фоллбек для разработки (npm run dev) и на случай, если
+// GITHUB_DATA_TOKEN не задан. В проде TimeWeb App Platform не даёт
+// постоянного диска: контейнер (и этот файл вместе с ним) пересоздаётся с
+// нуля при каждом деплое, поэтому реальное хранилище — приватный GitHub-
+// репозиторий (см. ниже), переживающий любые передеплои сайта.
 const DATA_DIR = path.resolve(process.cwd(), 'data');
 const DATA_FILE = path.join(DATA_DIR, 'bookings.json');
+
+const GITHUB_TOKEN = process.env.GITHUB_DATA_TOKEN;
+const GITHUB_OWNER = process.env.GITHUB_DATA_OWNER || 'rplv21';
+const GITHUB_REPO = process.env.GITHUB_DATA_REPO || 'russian-costume-festival-data';
+const GITHUB_BRANCH = process.env.GITHUB_DATA_BRANCH || 'main';
+const GITHUB_FILE_PATH = 'bookings.json';
+const GITHUB_API_URL = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${GITHUB_FILE_PATH}`;
+
+function githubEnabled(): boolean {
+  return Boolean(GITHUB_TOKEN);
+}
+
+if (process.env.NODE_ENV === 'production' && !githubEnabled()) {
+  console.warn(
+    '[bookingStore] GITHUB_DATA_TOKEN не задан в проде — брони пишутся в файл внутри контейнера ' +
+      'и будут потеряны при следующем деплое. Задайте GITHUB_DATA_TOKEN в переменных окружения TimeWeb.',
+  );
+}
 
 type StoreShape = {
   bookedSeats: Record<string, string[]>;
@@ -24,32 +47,109 @@ type StoreShape = {
   }>;
 };
 
+type LoadedStore = { store: StoreShape; sha?: string };
+
 function emptyStore(): StoreShape {
   const bookedSeats: Record<string, string[]> = {};
   for (const day of FREE_DAYS) bookedSeats[day.value] = [];
   return { bookedSeats, bookings: [] };
 }
 
-async function readStore(): Promise<StoreShape> {
+function fillMissingDays(store: StoreShape): StoreShape {
+  for (const day of FREE_DAYS) {
+    if (!store.bookedSeats[day.value]) store.bookedSeats[day.value] = [];
+  }
+  return store;
+}
+
+async function readStoreFromGithub(): Promise<LoadedStore> {
+  const res = await fetch(`${GITHUB_API_URL}?ref=${GITHUB_BRANCH}`, {
+    headers: {
+      Authorization: `Bearer ${GITHUB_TOKEN}`,
+      Accept: 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+    },
+  });
+  if (res.status === 404) return { store: emptyStore(), sha: undefined };
+  if (!res.ok) {
+    throw new Error(`[bookingStore] GitHub read failed: ${res.status} ${await res.text().catch(() => '')}`);
+  }
+  const data = (await res.json()) as { content: string; sha: string };
+  const raw = Buffer.from(data.content, 'base64').toString('utf-8');
+  const parsed = fillMissingDays(JSON.parse(raw) as StoreShape);
+  return { store: parsed, sha: data.sha };
+}
+
+async function writeStoreToGithub(store: StoreShape, sha: string | undefined): Promise<string> {
+  const res = await fetch(GITHUB_API_URL, {
+    method: 'PUT',
+    headers: {
+      Authorization: `Bearer ${GITHUB_TOKEN}`,
+      Accept: 'application/vnd.github+json',
+      'Content-Type': 'application/json',
+      'X-GitHub-Api-Version': '2022-11-28',
+    },
+    body: JSON.stringify({
+      message: `bookings update ${new Date().toISOString()}`,
+      content: Buffer.from(JSON.stringify(store, null, 2), 'utf-8').toString('base64'),
+      branch: GITHUB_BRANCH,
+      ...(sha ? { sha } : {}),
+    }),
+  });
+  if (!res.ok) {
+    throw new Error(`[bookingStore] GitHub write failed: ${res.status} ${await res.text().catch(() => '')}`);
+  }
+  const data = (await res.json()) as { content: { sha: string } };
+  return data.content.sha;
+}
+
+async function readStoreFromDisk(): Promise<LoadedStore> {
   try {
     const raw = await fs.readFile(DATA_FILE, 'utf-8');
-    const parsed = JSON.parse(raw) as StoreShape;
-    for (const day of FREE_DAYS) {
-      if (!parsed.bookedSeats[day.value]) parsed.bookedSeats[day.value] = [];
-    }
-    return parsed;
+    return { store: fillMissingDays(JSON.parse(raw) as StoreShape) };
   } catch {
-    return emptyStore();
+    return { store: emptyStore() };
   }
 }
 
-async function writeStore(store: StoreShape): Promise<void> {
+async function writeStoreToDisk(store: StoreShape): Promise<void> {
   await fs.mkdir(DATA_DIR, { recursive: true });
   await fs.writeFile(DATA_FILE, JSON.stringify(store, null, 2), 'utf-8');
 }
 
+// Короткий кэш — только для «просто покажи мне занятые места» (публичная
+// схема зала, панель администратора). Бронирование/освобождение места
+// (reserveSeats/releaseSeat) всегда читают свежие данные напрямую — им
+// нельзя работать по устаревшему снимку перед записью.
+const CACHE_TTL_MS = 5000;
+let cache: { store: StoreShape; sha: string | undefined; fetchedAt: number } | null = null;
+
+async function loadStoreFresh(): Promise<LoadedStore> {
+  return githubEnabled() ? readStoreFromGithub() : readStoreFromDisk();
+}
+
+async function loadStoreCached(): Promise<LoadedStore> {
+  if (cache && Date.now() - cache.fetchedAt < CACHE_TTL_MS) {
+    return { store: cache.store, sha: cache.sha };
+  }
+  const loaded = await loadStoreFresh();
+  cache = { store: loaded.store, sha: loaded.sha, fetchedAt: Date.now() };
+  return loaded;
+}
+
+async function persistStore(store: StoreShape, sha: string | undefined): Promise<void> {
+  if (githubEnabled()) {
+    const newSha = await writeStoreToGithub(store, sha);
+    cache = { store, sha: newSha, fetchedAt: Date.now() };
+  } else {
+    await writeStoreToDisk(store);
+    cache = { store, sha: undefined, fetchedAt: Date.now() };
+  }
+}
+
 // Простая последовательная очередь — не даёт двум одновременным запросам
-// прочитать один и тот же файл до того, как первый допишет своё бронирование.
+// прочитать один и тот же файл/файл в GitHub до того, как первый допишет
+// своё бронирование.
 let queue: Promise<unknown> = Promise.resolve();
 function serialize<T>(task: () => Promise<T>): Promise<T> {
   const run = queue.then(task, task);
@@ -58,7 +158,7 @@ function serialize<T>(task: () => Promise<T>): Promise<T> {
 }
 
 export async function getBookedSeats(day: string): Promise<string[]> {
-  const store = await readStore();
+  const { store } = await loadStoreCached();
   return store.bookedSeats[day] ?? [];
 }
 
@@ -79,7 +179,7 @@ export function reserveSeats(params: {
   enforcePersonLimit?: boolean;
 }): Promise<ReserveResult> {
   return serialize(async () => {
-    const store = await readStore();
+    const { store, sha } = await loadStoreFresh();
     const booked = new Set(store.bookedSeats[params.day] ?? []);
     const takenSeatIds = params.seatIds.filter((id) => booked.has(id));
 
@@ -134,7 +234,7 @@ export function reserveSeats(params: {
       createdAt: new Date().toISOString(),
     });
 
-    await writeStore(store);
+    await persistStore(store, sha);
     return { ok: true, bookingId } as const;
   });
 }
@@ -152,7 +252,7 @@ export type OccupiedSeat = {
 };
 
 export async function getOccupiedSeats(): Promise<OccupiedSeat[]> {
-  const store = await readStore();
+  const { store } = await loadStoreCached();
   const rows: OccupiedSeat[] = [];
   for (const booking of store.bookings) {
     const dayLabel = FREE_DAYS.find((d) => d.value === booking.day)?.label ?? booking.day;
@@ -178,7 +278,7 @@ export type ReleaseResult = { ok: true } | { ok: false; reason: 'not_found' };
 
 export function releaseSeat(day: string, seatId: string): Promise<ReleaseResult> {
   return serialize(async () => {
-    const store = await readStore();
+    const { store, sha } = await loadStoreFresh();
     const booked = store.bookedSeats[day] ?? [];
     if (!booked.includes(seatId)) {
       return { ok: false, reason: 'not_found' } as const;
@@ -192,7 +292,7 @@ export function releaseSeat(day: string, seatId: string): Promise<ReleaseResult>
     }
     store.bookings = store.bookings.filter((b) => b.seatIds.length > 0);
 
-    await writeStore(store);
+    await persistStore(store, sha);
     return { ok: true } as const;
   });
 }

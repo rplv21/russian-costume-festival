@@ -21,8 +21,16 @@ import { mainDoll } from '../data/site';
     let clicks = 0;
     let flying = false;
 
-    doll.addEventListener('click', () => {
+    // Та же причина, по которой z-index не поднимает куклу над контентом,
+    // не даёт и обычным кликам до неё долетать: секции страницы физически
+    // лежат выше в стеке (пусть и прозрачные), поэтому реальный клик мышью
+    // достаётся им, а не картинке куклы позади. Слушаем клики на всём
+    // документе и проверяем попадание координат в её текущий прямоугольник —
+    // это работает независимо от того, что визуально лежит поверх.
+    document.addEventListener('click', (e) => {
       if (flying) return;
+      const rect = doll!.getBoundingClientRect();
+      if (e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom) return;
       clicks += 1;
       if (clicks >= 30) {
         clicks = 0;
@@ -104,9 +112,6 @@ import { mainDoll } from '../data/site';
     height: calc(100dvh - 76px);
     width: auto;
     filter: drop-shadow(0 30px 70px rgba(0, 0, 0, 0.45));
-    /* .page-bg целиком pointer-events:none — включаем клики точечно на самой кукле */
-    pointer-events: auto;
-    cursor: pointer;
   }
 
   @media (max-width: 640px) {

@@ -4,8 +4,59 @@ import { mainDoll } from '../data/site';
 
 <div class="page-bg" aria-hidden="true">
   <div class="pattern-layer"></div>
-  <img src={mainDoll} alt="" class="doll-layer" />
+  <img src={mainDoll} alt="" class="doll-layer" id="bg-doll" />
 </div>
+
+<script>
+  // Пасхалка: 30 кликов по кукле на фоне — она взлетает как ракета, облетает
+  // сайт и возвращается на место. .page-bg стоит на z-index:-2 (свой
+  // стек-контекст) — какой z-index ни поставь кукле внутри него, выше обычного
+  // контента страницы она не поднимется. Поэтому на время полёта временно
+  // переносим её в document.body с position:fixed и координатами,
+  // подхваченными из getBoundingClientRect() — визуально без скачка.
+  const doll = document.getElementById('bg-doll') as HTMLImageElement | null;
+  const pageBg = document.querySelector('.page-bg') as HTMLElement | null;
+
+  if (doll && pageBg) {
+    let clicks = 0;
+    let flying = false;
+
+    doll.addEventListener('click', () => {
+      if (flying) return;
+      clicks += 1;
+      if (clicks >= 30) {
+        clicks = 0;
+        launch();
+      }
+    });
+
+    function launch() {
+      flying = true;
+      const rect = doll!.getBoundingClientRect();
+
+      document.body.appendChild(doll!);
+      doll!.style.position = 'fixed';
+      doll!.style.left = `${rect.left}px`;
+      doll!.style.top = `${rect.top}px`;
+      doll!.style.right = 'auto';
+      doll!.style.width = `${rect.width}px`;
+      doll!.style.height = `${rect.height}px`;
+      doll!.style.zIndex = '9999';
+      doll!.classList.add('doll-flight');
+
+      doll!.addEventListener(
+        'animationend',
+        () => {
+          doll!.classList.remove('doll-flight');
+          doll!.removeAttribute('style');
+          pageBg!.appendChild(doll!);
+          flying = false;
+        },
+        { once: true },
+      );
+    }
+  }
+</script>
 
 <style>
   .page-bg {
@@ -53,6 +104,9 @@ import { mainDoll } from '../data/site';
     height: calc(100dvh - 76px);
     width: auto;
     filter: drop-shadow(0 30px 70px rgba(0, 0, 0, 0.45));
+    /* .page-bg целиком pointer-events:none — включаем клики точечно на самой кукле */
+    pointer-events: auto;
+    cursor: pointer;
   }
 
   @media (max-width: 640px) {
@@ -60,6 +114,44 @@ import { mainDoll } from '../data/site';
       right: 50%;
       transform: translateX(50%);
       opacity: 0.5;
+    }
+  }
+
+  /* Пасхалка: взлёт-облёт-возврат. Пока летит, кукла временно вынесена в
+     document.body с position:fixed — transform ниже считается от той точки,
+     где её застал клик, поэтому одни и те же keyframes годятся для любого
+     размера экрана и любой стартовой позиции. */
+  .doll-flight {
+    animation: doll-flight 6s cubic-bezier(0.45, 0, 0.55, 1) 1;
+    pointer-events: none;
+  }
+  @keyframes doll-flight {
+    0% {
+      transform: translate(0, 0) rotate(0deg) scale(1);
+    }
+    12% {
+      transform: translate(2vw, -55vh) rotate(-6deg) scale(1.08);
+    }
+    20% {
+      transform: translate(-15vw, -85vh) rotate(-40deg) scale(1.05);
+    }
+    35% {
+      transform: translate(-75vw, -55vh) rotate(-140deg) scale(1);
+    }
+    50% {
+      transform: translate(-85vw, 40vh) rotate(-220deg) scale(1);
+    }
+    65% {
+      transform: translate(-20vw, 85vh) rotate(-300deg) scale(1);
+    }
+    80% {
+      transform: translate(55vw, 35vh) rotate(-380deg) scale(1.05);
+    }
+    92% {
+      transform: translate(15vw, -20vh) rotate(-360deg) scale(1.1);
+    }
+    100% {
+      transform: translate(0, 0) rotate(-360deg) scale(1);
     }
   }
 </style>

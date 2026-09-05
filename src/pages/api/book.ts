@@ -77,9 +77,11 @@ export const POST: APIRoute = async ({ request }) => {
   );
   const fileName = ticketsFileName(reserved.bookingId);
 
-  let emailSent = false;
+  // Письмо не ждём: сеть до почтовых сервисов на текущем хостинге иногда виснет
+  // на пару минут вместо быстрого ответа, а бронь с PDF-билетом на скачивание
+  // уже готовы — незачем задерживать ответ гостю ради необязательного письма.
   if (isMailConfigured()) {
-    emailSent = await sendTicketsEmail({
+    sendTicketsEmail({
       to: cleanEmail,
       name: cleanName,
       dayLabel,
@@ -87,7 +89,7 @@ export const POST: APIRoute = async ({ request }) => {
       seatLabels: seatIdList.map((seatId) => seatLabel(seatId)),
       pdfBytes,
       pdfFileName: fileName,
-    });
+    }).catch((err) => console.error('[book] Фоновая отправка письма с билетами упала:', err));
   }
 
   return json({
@@ -95,7 +97,6 @@ export const POST: APIRoute = async ({ request }) => {
     bookingId: reserved.bookingId,
     pdfBase64: Buffer.from(pdfBytes).toString('base64'),
     pdfFileName: fileName,
-    emailSent,
     mailConfigured: isMailConfigured(),
   });
 };

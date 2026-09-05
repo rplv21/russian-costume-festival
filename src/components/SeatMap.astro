@@ -413,8 +413,8 @@ const initialDay = FREE_DAYS.some((d) => d.value === requestedDay) ? requestedDa
 
       lastPdf = { base64: data.pdfBase64, fileName: data.pdfFileName };
       successBookingIdEl.textContent = `№ ${data.bookingId}`;
-      successEmailNoteEl.textContent = data.emailSent
-        ? `Билеты также отправлены на почту ${email}.`
+      successEmailNoteEl.textContent = data.mailConfigured
+        ? `Билеты также придут на почту ${email} — обычно в течение нескольких минут.`
         : 'Скачайте билеты по кнопке ниже.';
 
       bookedSeatIds = new Set([...bookedSeatIds, ...selectedSeatIds]);

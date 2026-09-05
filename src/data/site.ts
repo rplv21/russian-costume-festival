@@ -210,11 +210,6 @@ export const partners = [
     url: 'https://culture.gov.ru',
     logo: '/logos/minkult-rf.png',
   },
-  {
-    name: 'Портал органов власти Ярославской области',
-    url: 'https://www.yarregion.ru/default.aspx',
-    logo: '/logos/gerb-yao.svg',
-  },
 ] as const;
 
 export const credits = {
@@ -226,3 +221,13 @@ export const pushkinCard = {
   logo: '/logos/pushkinskaya-karta.png',
   url: 'https://www.culture.ru/pushkinskaya-karta',
 };
+
+export const bestPractices = {
+  logo: '/logos/lpk-dk.svg',
+  url: 'https://пространствокультуры.рф/dk',
+};
+
+// Номер счётчика Яндекс.Метрики (metrika.yandex.ru) — не секрет, виден в HTML
+// любой страницы после установки, поэтому хранится здесь, а не в .env.
+// Пока null — счётчик ещё не создан, тег в Layout.astro не рендерится.
+export const yandexMetricaId: number | null = null;

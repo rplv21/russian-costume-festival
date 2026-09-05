@@ -1,5 +1,5 @@
 ---
-import { festival, contacts, partners, credits, pushkinCard, mainDoll } from '../data/site';
+import { festival, contacts, partners, credits, pushkinCard, bestPractices, mainDoll } from '../data/site';
 import PrivacyContent from './PrivacyContent.astro';
 ---
 
@@ -42,9 +42,14 @@ import PrivacyContent from './PrivacyContent.astro';
         ))}
       </div>
     </div>
-    <a href={pushkinCard.url} target="_blank" rel="noopener" class="pushkin-card">
-      <img src={pushkinCard.logo} alt="Пушкинская карта" loading="lazy" />
-    </a>
+    <div class="badges-col">
+      <a href={pushkinCard.url} target="_blank" rel="noopener" class="pushkin-card">
+        <img src={pushkinCard.logo} alt="Пушкинская карта" loading="lazy" />
+      </a>
+      <a href={bestPractices.url} target="_blank" rel="noopener" class="pushkin-card">
+        <img src={bestPractices.logo} alt="Лучшие практики" loading="lazy" />
+      </a>
+    </div>
   </div>
 
   <div class="container footer-bottom">
@@ -148,32 +153,196 @@ import PrivacyContent from './PrivacyContent.astro';
     pickIdleTarget();
     setInterval(pickIdleTarget, 3200 + Math.random() * 2200);
 
+    // --- Мобильная пасхалка: куклу можно "взять" пальцем, утащить и кинуть ---
+    // Пока кукла держится/летит/сидит за краем экрана, обычная ходьба (walk)
+    // приостановлена — режимы переключает единый цикл loop() ниже.
+    type Mode = 'walk' | 'held' | 'falling' | 'offscreen';
+    let mode: Mode = 'walk';
+    let freeX = 0;
+    let freeY = 0;
+    let freeVX = 0;
+    let freeVY = 0;
+    let spin = 0;
+    let grabOffsetX = 0;
+    let grabOffsetY = 0;
+    let activeTouchId: number | null = null;
+    let touchSamples: { x: number; y: number; t: number }[] = [];
+    let offscreenTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const GRAVITY = 1.6;
+    const SPIN_FACTOR = 0.7;
+    const SAMPLE_WINDOW_MS = 120;
+    const MAX_FLING_SPEED = 42;
+
+    function isMobile() {
+      return window.matchMedia('(max-width: 640px)').matches;
+    }
+
+    // Отрываем куклу от футера и превращаем в свободно летающий объект
+    // с абсолютными экранными координатами — иначе за пределы футера ей не выйти
+    // (родитель обрезает её позицию своей же системой координат).
+    function grabDoll(clientX: number, clientY: number) {
+      const rect = footerDoll!.getBoundingClientRect();
+      freeX = rect.left;
+      freeY = rect.top;
+      grabOffsetX = clientX - rect.left;
+      grabOffsetY = clientY - rect.top;
+
+      document.body.appendChild(footerDoll!);
+      footerDoll!.style.position = 'fixed';
+      footerDoll!.style.left = `${freeX}px`;
+      footerDoll!.style.top = `${freeY}px`;
+      footerDoll!.style.width = `${rect.width}px`;
+      footerDoll!.style.height = `${rect.height}px`;
+      footerDoll!.style.zIndex = '9999';
+      footerDoll!.style.pointerEvents = 'auto';
+      footerDoll!.style.transform = 'scale(1.15)';
+
+      touchSamples = [{ x: clientX, y: clientY, t: performance.now() }];
+      mode = 'held';
+    }
+
+    // Возвращаем куклу в футер и снова доверяем её позицию обычному tick():
+    // сбрасываем все инлайн-стили, выставленные на время захвата/полёта.
+    function landOnFooter(landedClientX: number) {
+      footerEl!.appendChild(footerDoll!);
+      footerDoll!.style.position = '';
+      footerDoll!.style.left = '';
+      footerDoll!.style.top = '';
+      footerDoll!.style.width = '';
+      footerDoll!.style.height = '';
+      footerDoll!.style.zIndex = '';
+      footerDoll!.style.pointerEvents = '';
+
+      recalcTrack();
+      const footerRect = footerEl!.getBoundingClientRect();
+      posX = clamp(landedClientX - footerRect.left, minX, maxX);
+      lastX = posX;
+      pickIdleTarget();
+      mode = 'walk';
+    }
+
+    // Кукла улетела за левый/правый край экрана: прячем (она и так не видна за
+    // краем) и через случайную паузу возвращаем — "выглядывает" и идёт обратно.
+    function goOffscreen(side: 'left' | 'right') {
+      mode = 'offscreen';
+      if (offscreenTimer) clearTimeout(offscreenTimer);
+      offscreenTimer = setTimeout(() => {
+        recalcTrack();
+        footerEl!.appendChild(footerDoll!);
+        footerDoll!.style.position = '';
+        footerDoll!.style.left = '';
+        footerDoll!.style.top = '';
+        footerDoll!.style.width = '';
+        footerDoll!.style.height = '';
+        footerDoll!.style.zIndex = '';
+        footerDoll!.style.pointerEvents = '';
+        posX = side === 'left' ? minX - dollWidth : maxX + dollWidth;
+        lastX = posX;
+        targetX = side === 'left' ? minX + 14 : maxX - 14;
+        mode = 'walk';
+      }, 1200 + Math.random() * 1800);
+    }
+
+    function onTouchStart(e: TouchEvent) {
+      if (!isMobile() || mode !== 'walk') return;
+      const touch = e.changedTouches[0];
+      activeTouchId = touch.identifier;
+      e.preventDefault();
+      grabDoll(touch.clientX, touch.clientY);
+    }
+
+    function onTouchMove(e: TouchEvent) {
+      if (mode !== 'held') return;
+      const touch = Array.from(e.changedTouches).find((t) => t.identifier === activeTouchId);
+      if (!touch) return;
+      e.preventDefault();
+
+      freeX = touch.clientX - grabOffsetX;
+      freeY = touch.clientY - grabOffsetY;
+      footerDoll!.style.left = `${freeX}px`;
+      footerDoll!.style.top = `${freeY}px`;
+
+      const now = performance.now();
+      touchSamples.push({ x: touch.clientX, y: touch.clientY, t: now });
+      touchSamples = touchSamples.filter((s) => now - s.t <= SAMPLE_WINDOW_MS);
+    }
+
+    function onTouchEnd(e: TouchEvent) {
+      if (mode !== 'held') return;
+      const touch = Array.from(e.changedTouches).find((t) => t.identifier === activeTouchId);
+      if (!touch) return;
+      activeTouchId = null;
+
+      const oldest = touchSamples[0];
+      const newest = touchSamples[touchSamples.length - 1] ?? oldest;
+      const dt = newest && oldest ? newest.t - oldest.t : 0;
+      if (oldest && newest && dt > 0) {
+        freeVX = clamp(((newest.x - oldest.x) / dt) * 16, -MAX_FLING_SPEED, MAX_FLING_SPEED);
+        freeVY = clamp(((newest.y - oldest.y) / dt) * 16, -MAX_FLING_SPEED, MAX_FLING_SPEED);
+      } else {
+        freeVX = 0;
+        freeVY = 0;
+      }
+      spin = 0;
+      mode = 'falling';
+    }
+
+    footerDoll!.addEventListener('touchstart', onTouchStart, { passive: false });
+    window.addEventListener('touchmove', onTouchMove, { passive: false });
+    window.addEventListener('touchend', onTouchEnd);
+    window.addEventListener('touchcancel', onTouchEnd);
+
     // Обычный requestAnimationFrame не тикает в headless-браузерах без реального
     // рендер-цикла (в т.ч. в некоторых окружениях предпросмотра) — setTimeout(~60fps)
     // работает везде одинаково надёжно и для этой декоративной анимации не хуже.
-    function tick() {
-      const rect = footerDoll!.getBoundingClientRect();
-      const centerX = rect.left + rect.width / 2;
-      const centerY = rect.top;
-      const dx = mouseX - centerX;
-      const dy = mouseY - centerY;
-      const dist = Math.hypot(dx, dy);
+    function loop() {
+      if (mode === 'walk') {
+        const rect = footerDoll!.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top;
+        const dx = mouseX - centerX;
+        const dy = mouseY - centerY;
+        const dist = Math.hypot(dx, dy);
 
-      if (dist <= FLEE_DISTANCE) {
-        const fleeDir = dx >= 0 ? -1 : 1;
-        targetX = clamp(posX + fleeDir * FLEE_STEP, minX, maxX);
+        if (dist <= FLEE_DISTANCE) {
+          const fleeDir = dx >= 0 ? -1 : 1;
+          targetX = clamp(posX + fleeDir * FLEE_STEP, minX, maxX);
+        }
+
+        posX += (targetX - posX) * EASE;
+        const velocity = posX - lastX;
+        lastX = posX;
+        const lean = clamp(-velocity * LEAN_FACTOR, -MAX_LEAN, MAX_LEAN);
+
+        footerDoll!.style.transform = `translate(${posX}px, -100%) rotate(${lean}deg)`;
+      } else if (mode === 'falling') {
+        freeVY += GRAVITY;
+        freeX += freeVX;
+        freeY += freeVY;
+        spin += freeVX * SPIN_FACTOR;
+
+        footerDoll!.style.left = `${freeX}px`;
+        footerDoll!.style.top = `${freeY}px`;
+        footerDoll!.style.transform = `rotate(${spin}deg)`;
+
+        const dollRect = footerDoll!.getBoundingClientRect();
+        const width = dollRect.width || dollWidth;
+        const height = dollRect.height || width;
+        const floorY = footerEl!.getBoundingClientRect().top;
+
+        if (freeX + width < 0 || freeX > window.innerWidth) {
+          goOffscreen(freeX + width < 0 ? 'left' : 'right');
+        } else if (freeY + height >= floorY) {
+          landOnFooter(freeX);
+        }
       }
-
-      posX += (targetX - posX) * EASE;
-      const velocity = posX - lastX;
-      lastX = posX;
-      const lean = clamp(-velocity * LEAN_FACTOR, -MAX_LEAN, MAX_LEAN);
-
-      footerDoll!.style.transform = `translate(${posX}px, -100%) rotate(${lean}deg)`;
-      setTimeout(tick, 16);
+      // mode === 'held' обновляется напрямую в onTouchMove; mode === 'offscreen'
+      // ждёт свой setTimeout в goOffscreen() — здесь для них делать нечего.
+      setTimeout(loop, 16);
     }
 
-    setTimeout(tick, 16);
+    setTimeout(loop, 16);
   }
 </script>
 
@@ -204,6 +373,14 @@ import PrivacyContent from './PrivacyContent.astro';
     pointer-events: none;
     will-change: transform;
     filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.35));
+  }
+  /* На мобильных куклу можно схватить пальцем и кинуть — ей нужны реальные
+     тач-события и touch-action:none, чтобы жест не скроллил страницу. */
+  @media (max-width: 640px) {
+    .footer-doll {
+      pointer-events: auto;
+      touch-action: none;
+    }
   }
   @media (prefers-reduced-motion: reduce) {
     .footer-doll {
@@ -274,9 +451,15 @@ import PrivacyContent from './PrivacyContent.astro';
     opacity: 1;
     text-decoration: underline;
   }
-  .pushkin-card {
+  .badges-col {
     flex: none;
     margin-left: auto;
+    display: flex;
+    align-items: flex-end;
+    gap: 24px;
+  }
+  .pushkin-card {
+    flex: none;
     display: flex;
     align-items: flex-end;
     height: 96px;

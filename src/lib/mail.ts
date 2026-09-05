@@ -1,30 +1,13 @@
-import nodemailer from 'nodemailer';
 import { festival, contacts } from '../data/site';
 
-// Настройки почты берутся из переменных окружения (.env, не попадает в git).
-// Пока SMTP не настроен — письма не отправляются, но бронирование и PDF всё
-// равно работают: пользователь получает билеты через кнопку скачивания.
-const SMTP_HOST = process.env.SMTP_HOST;
-const SMTP_PORT = process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : 465;
-const SMTP_USER = process.env.SMTP_USER;
-const SMTP_PASS = process.env.SMTP_PASS;
-const SMTP_FROM = process.env.SMTP_FROM || SMTP_USER;
+// Отправка через HTTP API (Resend), а не через SMTP: TimeWeb App Platform
+// блокирует исходящие SMTP-подключения (проверено на портах 465 и 587 —
+// оба одинаково зависают до тайм-аута), а обычный HTTPS-запрос порт не блокируется.
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
+const MAIL_FROM = process.env.MAIL_FROM || `${festival.shortName} <bilety@kostum76.ru>`;
 
 export function isMailConfigured(): boolean {
-  return Boolean(SMTP_HOST && SMTP_USER && SMTP_PASS);
-}
-
-let transporter: ReturnType<typeof nodemailer.createTransport> | null = null;
-function getTransporter() {
-  if (!transporter && isMailConfigured()) {
-    transporter = nodemailer.createTransport({
-      host: SMTP_HOST,
-      port: SMTP_PORT,
-      secure: SMTP_PORT === 465,
-      auth: { user: SMTP_USER, pass: SMTP_PASS },
-    });
-  }
-  return transporter;
+  return Boolean(RESEND_API_KEY);
 }
 
 export async function sendTicketsEmail(params: {
@@ -36,40 +19,52 @@ export async function sendTicketsEmail(params: {
   pdfBytes: Uint8Array;
   pdfFileName: string;
 }): Promise<boolean> {
-  const t = getTransporter();
-  if (!t) {
-    console.warn('[mail] SMTP не настроен (.env: SMTP_HOST/SMTP_USER/SMTP_PASS) — письмо не отправлено, PDF доступен только по кнопке скачивания.');
+  if (!RESEND_API_KEY) {
+    console.warn('[mail] RESEND_API_KEY не задан (.env) — письмо не отправлено, PDF доступен только по кнопке скачивания.');
     return false;
   }
 
   const seatsList = params.seatLabels.map((label) => `— ${label}`).join('\n');
 
   try {
-    await t.sendMail({
-      from: `"${festival.shortName}" <${SMTP_FROM}>`,
-      to: params.to,
-      subject: `Ваши билеты — ${festival.shortName}, ${params.dayLabel}`,
-      text:
-        `Здравствуйте, ${params.name}!\n\n` +
-        `Ваша бронь №${params.bookingId} на фестиваль «${festival.fullName}» подтверждена.\n` +
-        `День: ${params.dayLabel}.\n` +
-        `Места:\n${seatsList}\n\n` +
-        `Билеты — во вложении (PDF, тот же файл, что вы уже могли скачать на сайте). Возьмите с собой паспорт.\n\n` +
-        `Если вы забронировали билеты, но не сможете посетить мероприятие — пожалуйста, сообщите об этом заранее: ` +
-        `позвоните в Областной Дом народного творчества по номеру ${contacts.orgPhone} и попросите отменить бронь, ` +
-        `чтобы места достались другим зрителям.\n\n` +
-        `По вопросам: ${contacts.orgPhone}, ${contacts.confirmationEmail}`,
-      attachments: [
-        {
-          filename: params.pdfFileName,
-          content: Buffer.from(params.pdfBytes),
-          contentType: 'application/pdf',
-        },
-      ],
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: MAIL_FROM,
+        to: params.to,
+        subject: `Ваши билеты — ${festival.shortName}, ${params.dayLabel}`,
+        text:
+          `Здравствуйте, ${params.name}!\n\n` +
+          `Ваша бронь №${params.bookingId} на фестиваль «${festival.fullName}» подтверждена.\n` +
+          `День: ${params.dayLabel}.\n` +
+          `Места:\n${seatsList}\n\n` +
+          `Билеты — во вложении (PDF, тот же файл, что вы уже могли скачать на сайте). Возьмите с собой паспорт.\n\n` +
+          `Если вы забронировали билеты, но не сможете посетить мероприятие — пожалуйста, сообщите об этом заранее: ` +
+          `позвоните в Областной Дом народного творчества по номеру ${contacts.orgPhone} и попросите отменить бронь, ` +
+          `чтобы места достались другим зрителям.\n\n` +
+          `По вопросам: ${contacts.orgPhone}, ${contacts.confirmationEmail}`,
+        attachments: [
+          {
+            filename: params.pdfFileName,
+            content: Buffer.from(params.pdfBytes).toString('base64'),
+          },
+        ],
+      }),
     });
+
+    if (!res.ok) {
+      console.error('[mail] Resend API вернул ошибку:', res.status, await res.text().catch(() => ''));
+      return false;
+    }
     return true;
   } catch (err) {
     console.error('[mail] Не удалось отправить письмо с билетами:', err);
     return false;
   }
 }
+
+export { contacts };

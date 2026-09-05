@@ -2,7 +2,7 @@ import { PDFDocument, rgb, type PDFFont, type PDFImage, type PDFPage } from 'pdf
 import fontkit from '@pdf-lib/fontkit';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
-import { festival, contacts } from '../data/site';
+import { festival, contacts, partners } from '../data/site';
 import { seatLabel, VENUE, VIEWBOX, STAGE } from '../data/seating';
 
 const PROJECT_ROOT = process.cwd();
@@ -14,11 +14,13 @@ export type TicketInfo = {
   bookingId: string;
 };
 
+// Новый синий тон шапки билета (над красной чертой) — темнее прежнего.
+const NAVY = rgb(0.086, 0.129, 0.239);
 const RED = rgb(0.886, 0.039, 0.09);
-const BLUE = rgb(0.153, 0.204, 0.459);
+const WHITE = rgb(1, 1, 1);
+const LIGHT_TEXT = rgb(0.85, 0.87, 0.95);
 const TEXT = rgb(0.102, 0.102, 0.122);
 const MUTED = rgb(0.333, 0.337, 0.373);
-const WHITE = rgb(1, 1, 1);
 const SURFACE = rgb(0.969, 0.965, 0.953);
 const BORDER = rgb(0.85, 0.85, 0.86);
 const DOT_MUTED = rgb(0.79, 0.8, 0.82);
@@ -66,8 +68,9 @@ function drawMiniMap(
     color: MUTED,
   });
 
+  const originX = box.x;
   const originY = top - 18;
-  const toX = (sx: number) => box.x + sx * scale;
+  const toX = (sx: number) => originX + sx * scale;
   const toY = (sy: number) => originY - sy * scale;
 
   // сцена
@@ -104,6 +107,31 @@ function drawDoll(page: PDFPage, box: { x: number; y: number; w: number; h: numb
   });
 }
 
+// Только текстовое упоминание учредителей и партнёров (без логотипов) —
+// та же формулировка, что и в футере сайта.
+function drawPartnerNames(page: PDFPage, box: { x: number; y: number; w: number }, fonts: Fonts): void {
+  page.drawText('УЧРЕДИТЕЛИ И ПАРТНЁРЫ', {
+    x: box.x,
+    y: box.y,
+    size: 6,
+    font: fonts.bold,
+    color: MUTED,
+  });
+  const partnerNames = partners.map((p) => p.name).join(' · ');
+  const lines = wrapText(partnerNames, fonts.regular, 6.5, box.w).slice(0, 2);
+  let lineY = box.y - 10;
+  for (const line of lines) {
+    page.drawText(line, {
+      x: box.x,
+      y: lineY,
+      size: 6.5,
+      font: fonts.regular,
+      color: MUTED,
+    });
+    lineY -= 9;
+  }
+}
+
 function drawDashedLine(page: PDFPage, x1: number, y: number, x2: number) {
   page.drawLine({
     start: { x: x1, y },
@@ -127,7 +155,7 @@ function drawTicket(
   page.drawRectangle({ x, y, width: w, height: h, color: WHITE, borderColor: BORDER, borderWidth: 1 });
 
   const headerH = 64;
-  page.drawRectangle({ x, y: y + h - headerH, width: w, height: headerH, color: BLUE });
+  page.drawRectangle({ x, y: y + h - headerH, width: w, height: headerH, color: NAVY });
 
   page.drawText(festival.shortName, {
     x: x + 20,
@@ -150,7 +178,7 @@ function drawTicket(
     y: y + h - headerH + 12,
     size: 9.5,
     font: fonts.regular,
-    color: rgb(0.85, 0.87, 0.95),
+    color: LIGHT_TEXT,
   });
 
   // Полоса-акцент под шапкой
@@ -186,7 +214,7 @@ function drawTicket(
     cursorY -= 6;
   }
 
-  field('День фестиваля', ticket.dayLabel, { bold: true, color: BLUE, size: 13 });
+  field('День фестиваля', ticket.dayLabel, { bold: true, color: NAVY, size: 13 });
   field('Место', seatLabel(ticket.seatId), { bold: true, color: RED, size: 14 });
   field('Гость', ticket.name, { size: 12 });
 
@@ -195,12 +223,15 @@ function drawTicket(
   const mapBoxBottom = y + 64;
   drawMiniMap(page, { x: mapBoxX, y: mapBoxBottom, w: mapColW, h: mapBoxTop - mapBoxBottom }, ticket.seatId, fonts);
 
-  // Кукла — в оставшемся месте левой колонки, под полями и над предупреждением
-  const dollBoxBottom = y + 64;
+  // Кукла — в оставшемся месте левой колонки, под полями и над упоминанием партнёров
+  const dollBoxBottom = y + 84;
   const dollBoxTop = cursorY - 4;
   if (dollBoxTop > dollBoxBottom) {
     drawDoll(page, { x: contentX, y: dollBoxBottom, w: textColW, h: dollBoxTop - dollBoxBottom }, images.doll);
   }
+
+  // Учредители и партнёры — текстом, без логотипов
+  drawPartnerNames(page, { x: contentX, y: y + 82, w: contentW }, fonts);
 
   // Предупреждение о паспорте
   const warnBoxY = y + 34;

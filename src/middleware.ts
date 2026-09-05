@@ -1,7 +1,8 @@
 import type { MiddlewareHandler } from 'astro';
 
-// Базовые security-заголовки — сайт не грузит ничего с внешних доменов (шрифты,
-// изображения, скрипты — всё самохостится), поэтому CSP можно держать строгим.
+// Базовые security-заголовки. Почти всё самохостится, кроме Яндекс.Метрики
+// (script-src/img-src/connect-src отдельно разрешают её домен для счётчика,
+// пикселя noscript и фоновых запросов отправки статистики).
 export const onRequest: MiddlewareHandler = async (_context, next) => {
   const response = await next();
 
@@ -14,9 +15,10 @@ export const onRequest: MiddlewareHandler = async (_context, next) => {
     'Content-Security-Policy',
     [
       "default-src 'self'",
-      "img-src 'self' data:",
+      "img-src 'self' data: https://mc.yandex.ru",
       "style-src 'self' 'unsafe-inline'",
-      "script-src 'self' 'unsafe-inline'",
+      "script-src 'self' 'unsafe-inline' https://mc.yandex.ru",
+      "connect-src 'self' https://mc.yandex.ru",
       "font-src 'self'",
       "frame-ancestors 'none'",
       "base-uri 'self'",

@@ -3,7 +3,7 @@ import '../styles/global.css';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import DollScroller from '../components/DollScroller.astro';
-import { festival } from '../data/site';
+import { festival, yandexMetricaId } from '../data/site';
 
 interface Props {
   title: string;
@@ -51,6 +51,32 @@ const eventSchema = {
     <meta property="og:locale" content="ru_RU" />
 
     <script is:inline type="application/ld+json" set:html={JSON.stringify(eventSchema)} />
+
+    {!noindex && yandexMetricaId && (
+      <>
+        {/* Яндекс.Метрика — считает переходы с рекламы (ВК Таргет, Яндекс.Директ)
+            по UTM-меткам в ссылках; не показывается на служебных страницах (noindex). */}
+        <script is:inline define:vars={{ id: yandexMetricaId }}>
+          (function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
+          m[i].l=1*new Date();
+          for (var j = 0; j < document.scripts.length; j++) {if (document.scripts[j].src === r) { return; }}
+          k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)})
+          (window, document, 'script', 'https://mc.yandex.ru/metrika/tag.js', 'ym');
+
+          ym(id, 'init', {
+            clickmap: true,
+            trackLinks: true,
+            accurateTrackBounce: true,
+            webvisor: true,
+          });
+        </script>
+        <noscript>
+          <div>
+            <img src={`https://mc.yandex.ru/watch/${yandexMetricaId}`} style="position:absolute; left:-9999px;" alt="" />
+          </div>
+        </noscript>
+      </>
+    )}
   </head>
   <body>
     <a href="#main" class="sr-only">Перейти к содержимому</a>

@@ -14,6 +14,10 @@ ENV PORT=8080
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 COPY --from=build /app/dist ./dist
+# tickets.ts читает шрифты/картинку куклы из src/assets в рантайме (генерация
+# PDF-билета — за запрос, её нельзя выполнить на этапе сборки), поэтому этой
+# папке нужно физически быть и в финальном образе, не только в build-стадии.
+COPY --from=build /app/src/assets ./src/assets
 RUN chown -R node:node /app
 
 EXPOSE 8080

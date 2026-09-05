@@ -187,6 +187,13 @@ import PrivacyContent from './PrivacyContent.astro';
     text-shadow: none;
     -webkit-text-stroke: 0;
   }
+  /* На мобильных фон всей страницы сам стал «стеклянным» (DollScroller) —
+     футер делаем чуть темнее, чтобы не сливался с ним. */
+  @media (max-width: 640px) {
+    .site-footer {
+      background: rgba(11, 16, 30, 0.92);
+    }
+  }
   .footer-doll {
     position: absolute;
     top: 0;

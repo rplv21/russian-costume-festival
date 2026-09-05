@@ -54,6 +54,13 @@ const currentPath = Astro.url.pathname;
     backdrop-filter: blur(8px);
     border-bottom: 1px solid var(--color-border);
   }
+  /* На мобильных фон всей страницы сам стал «стеклянным» (DollScroller) —
+     хэдер делаем чуть темнее, чтобы не сливался с ним. */
+  @media (max-width: 640px) {
+    .site-header {
+      background: rgba(11, 16, 30, 0.92);
+    }
+  }
   .header-row {
     display: flex;
     flex-wrap: nowrap;

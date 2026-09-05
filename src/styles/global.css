@@ -20,6 +20,12 @@
 
 html {
   scroll-behavior: smooth;
+  /* Не overflow-x:hidden/clip — на корневом html оба варианта либо ломают
+     position:sticky (hidden создаёт скролл-контейнер), либо отключают
+     прокрутку целиком (clip на корне блокирует скролл по обеим осям в
+     большинстве браузеров). overscroll-behavior-x просто гасит "резиновый"
+     отскок при свайпе влево-вправо, не трогая скролл-контейнеры. */
+  overscroll-behavior-x: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -43,6 +49,7 @@ body {
   font-size: 17px;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
+  overscroll-behavior-x: none;
 }
 
 h1,

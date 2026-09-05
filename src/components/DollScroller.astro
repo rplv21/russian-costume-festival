@@ -5,6 +5,7 @@ import { mainDoll } from '../data/site';
 <div class="page-bg" aria-hidden="true">
   <div class="pattern-layer"></div>
   <img src={mainDoll} alt="" class="doll-layer" id="bg-doll" />
+  <div class="mobile-glass"></div>
 </div>
 
 <script>
@@ -119,6 +120,24 @@ import { mainDoll } from '../data/site';
       right: 50%;
       transform: translateX(50%);
       opacity: 0.5;
+    }
+  }
+
+  /* Мобильная версия: фон целиком — «жидкое стекло», тот же приём, что у
+     хэдера/футера (полупрозрачная заливка + blur), только во всю страницу.
+     Лежит внутри .page-bg (z-index:-2) поверх узора и куклы — она их и
+     размывает под собой, а не что-то на странице. */
+  .mobile-glass {
+    display: none;
+  }
+  @media (max-width: 640px) {
+    .mobile-glass {
+      display: block;
+      position: absolute;
+      inset: 0;
+      background: rgba(22, 33, 61, 0.82);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
     }
   }
 

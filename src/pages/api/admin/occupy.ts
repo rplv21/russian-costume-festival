@@ -35,7 +35,11 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     typeof name === 'string' && name.trim() ? name.trim().replace(/\s+/g, ' ').slice(0, 120) : DEFAULT_NAME;
 
   const result = await reserveSeats({ day, seatIds: seatIdList, name: cleanName, email: '', phone: '' });
-  if (!result.ok) return json({ ok: false, error: 'seats_taken', takenSeatIds: result.takenSeatIds }, 409);
+  if (!result.ok) {
+    // enforcePersonLimit не передан — reason всегда 'taken', но проверяем явно для типов.
+    const takenSeatIds = result.reason === 'taken' ? result.takenSeatIds : [];
+    return json({ ok: false, error: 'seats_taken', takenSeatIds }, 409);
+  }
 
   const dayLabel = FREE_DAYS.find((d) => d.value === day)?.label ?? day;
   const createdAt = new Date().toISOString();

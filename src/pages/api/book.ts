@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { isValidDay, SEAT_INDEX, MAX_SEATS_PER_BOOKING, FREE_DAYS } from '../../data/seating';
+import { isValidDay, SEAT_INDEX, MAX_SEATS_PER_BOOKING, FREE_DAYS, seatLabel } from '../../data/seating';
 import { reserveSeats } from '../../lib/bookingStore';
 import { generateTicketsPdf, ticketsFileName } from '../../lib/tickets';
 import { sendTicketsEmail, isMailConfigured } from '../../lib/mail';
@@ -53,8 +53,21 @@ export const POST: APIRoute = async ({ request }) => {
   const cleanPhone = phone.trim();
   const seatIdList = uniqueSeatIds as string[];
 
-  const reserved = await reserveSeats({ day, seatIds: seatIdList, name: cleanName, email: cleanEmail, phone: cleanPhone });
+  const reserved = await reserveSeats({
+    day,
+    seatIds: seatIdList,
+    name: cleanName,
+    email: cleanEmail,
+    phone: cleanPhone,
+    enforcePersonLimit: true,
+  });
   if (!reserved.ok) {
+    if (reserved.reason === 'person_limit') {
+      return json(
+        { ok: false, error: 'person_limit', alreadyBooked: reserved.alreadyBooked, limit: MAX_SEATS_PER_BOOKING },
+        409,
+      );
+    }
     return json({ ok: false, error: 'seats_taken', takenSeatIds: reserved.takenSeatIds }, 409);
   }
 
@@ -71,6 +84,7 @@ export const POST: APIRoute = async ({ request }) => {
       name: cleanName,
       dayLabel,
       bookingId: reserved.bookingId,
+      seatLabels: seatIdList.map((seatId) => seatLabel(seatId)),
       pdfBytes,
       pdfFileName: fileName,
     });

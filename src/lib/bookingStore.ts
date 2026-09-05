@@ -1,6 +1,12 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
-import { FREE_DAYS, seatLabel } from '../data/seating';
+import { FREE_DAYS, seatLabel, MAX_SEATS_PER_BOOKING } from '../data/seating';
+
+function normalizedPhone(phone: string | undefined | null): string {
+  // Записи, созданные до появления поля phone (или ручные брони из
+  // админки), могут не иметь его вовсе — не должно валить сравнение.
+  return (phone ?? '').replace(/\D/g, '');
+}
 
 const DATA_DIR = path.resolve(process.cwd(), 'data');
 const DATA_FILE = path.join(DATA_DIR, 'bookings.json');
@@ -58,7 +64,8 @@ export async function getBookedSeats(day: string): Promise<string[]> {
 
 export type ReserveResult =
   | { ok: true; bookingId: string }
-  | { ok: false; reason: 'taken'; takenSeatIds: string[] };
+  | { ok: false; reason: 'taken'; takenSeatIds: string[] }
+  | { ok: false; reason: 'person_limit'; alreadyBooked: number };
 
 export function reserveSeats(params: {
   day: string;
@@ -66,6 +73,10 @@ export function reserveSeats(params: {
   name: string;
   email: string;
   phone: string;
+  // Админка занимает места без email/телефона гостя (occupy.ts) — для неё
+  // лимит "не больше 4 мест на одну почту/телефон" смысла не имеет и не
+  // должен применяться.
+  enforcePersonLimit?: boolean;
 }): Promise<ReserveResult> {
   return serialize(async () => {
     const store = await readStore();
@@ -90,6 +101,23 @@ export function reserveSeats(params: {
         return { ok: true, bookingId: existing.id } as const;
       }
       return { ok: false, reason: 'taken', takenSeatIds } as const;
+    }
+
+    if (params.enforcePersonLimit) {
+      const emailNorm = params.email.trim().toLowerCase();
+      const phoneNorm = normalizedPhone(params.phone);
+      const alreadyBooked = store.bookings
+        .filter(
+          (b) =>
+            b.day === params.day &&
+            ((emailNorm && b.email.trim().toLowerCase() === emailNorm) ||
+              (phoneNorm && normalizedPhone(b.phone) === phoneNorm)),
+        )
+        .reduce((sum, b) => sum + b.seatIds.length, 0);
+
+      if (alreadyBooked + params.seatIds.length > MAX_SEATS_PER_BOOKING) {
+        return { ok: false, reason: 'person_limit', alreadyBooked } as const;
+      }
     }
 
     for (const id of params.seatIds) booked.add(id);

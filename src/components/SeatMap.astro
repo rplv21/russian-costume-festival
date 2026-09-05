@@ -104,8 +104,9 @@ const initialDay = FREE_DAYS.some((d) => d.value === requestedDay) ? requestedDa
     <div class="rk-modal-body success-body">
       <p>Бронь <strong id="success-booking-id"></strong> подтверждена.</p>
       <p id="success-email-note" class="muted-note"></p>
+      <p class="download-emphasis">Обязательно скачайте билеты!</p>
       <button type="button" class="btn btn-red" id="download-pdf-btn">Скачать билеты (PDF)</button>
-      <p class="passport-warning small">Не забудьте паспорт — он понадобится на входе.</p>
+      <p class="passport-warning small">Не забудьте паспорт<br />он понадобится на входе.</p>
     </div>
   </div>
 </div>
@@ -400,6 +401,9 @@ const initialDay = FREE_DAYS.some((d) => d.value === requestedDay) ? requestedDa
           selectedSeatIds = selectedSeatIds.filter((id) => !taken.includes(id));
           taken.forEach((id) => bookedSeatIds.add(id));
           applyStates();
+        } else if (data.error === 'person_limit') {
+          formErrorEl.textContent = `На эту почту или телефон уже забронировано ${data.alreadyBooked} из ${data.limit} мест на этот день — больше оформить нельзя. Если нужно больше мест, свяжитесь с оргкомитетом.`;
+          formErrorEl.hidden = false;
         } else {
           formErrorEl.textContent = 'Не получилось оформить бронь. Попробуйте ещё раз.';
           formErrorEl.hidden = false;
@@ -856,6 +860,11 @@ const initialDay = FREE_DAYS.some((d) => d.value === requestedDay) ? requestedDa
   }
   .success-body strong {
     color: var(--color-blue);
+  }
+  .download-emphasis {
+    font-weight: 700;
+    color: var(--color-red);
+    font-size: 1.05rem;
   }
   .success-body .btn {
     width: 100%;

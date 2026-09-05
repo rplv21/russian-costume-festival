@@ -32,6 +32,7 @@ export async function sendTicketsEmail(params: {
   name: string;
   dayLabel: string;
   bookingId: string;
+  seatLabels: string[];
   pdfBytes: Uint8Array;
   pdfFileName: string;
 }): Promise<boolean> {
@@ -41,6 +42,8 @@ export async function sendTicketsEmail(params: {
     return false;
   }
 
+  const seatsList = params.seatLabels.map((label) => `— ${label}`).join('\n');
+
   try {
     await t.sendMail({
       from: `"${festival.shortName}" <${SMTP_FROM}>`,
@@ -49,8 +52,12 @@ export async function sendTicketsEmail(params: {
       text:
         `Здравствуйте, ${params.name}!\n\n` +
         `Ваша бронь №${params.bookingId} на фестиваль «${festival.fullName}» подтверждена.\n` +
-        `День: ${params.dayLabel}.\n\n` +
-        `Билеты — во вложении (PDF). Возьмите с собой паспорт.\n\n` +
+        `День: ${params.dayLabel}.\n` +
+        `Места:\n${seatsList}\n\n` +
+        `Билеты — во вложении (PDF, тот же файл, что вы уже могли скачать на сайте). Возьмите с собой паспорт.\n\n` +
+        `Если вы забронировали билеты, но не сможете посетить мероприятие — пожалуйста, сообщите об этом заранее: ` +
+        `позвоните в Областной Дом народного творчества по номеру ${contacts.orgPhone} и попросите отменить бронь, ` +
+        `чтобы места достались другим зрителям.\n\n` +
         `По вопросам: ${contacts.orgPhone}, ${contacts.confirmationEmail}`,
       attachments: [
         {

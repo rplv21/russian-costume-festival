@@ -64,6 +64,7 @@ const eventSchema = {
           (window, document, 'script', 'https://mc.yandex.ru/metrika/tag.js', 'ym');
 
           ym(id, 'init', {
+            ssr: true, // страницы рендерятся на сервере (Astro SSR), не только в браузере
             clickmap: true,
             trackLinks: true,
             accurateTrackBounce: true,

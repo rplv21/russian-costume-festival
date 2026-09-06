@@ -229,5 +229,4 @@ export const bestPractices = {
 
 // Номер счётчика Яндекс.Метрики (metrika.yandex.ru) — не секрет, виден в HTML
 // любой страницы после установки, поэтому хранится здесь, а не в .env.
-// Пока null — счётчик ещё не создан, тег в Layout.astro не рендерится.
-export const yandexMetricaId: number | null = null;
+export const yandexMetricaId: number | null = 112329449;

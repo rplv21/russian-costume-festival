@@ -113,6 +113,18 @@ const initialDay = FREE_DAYS.some((d) => d.value === requestedDay) ? requestedDa
 
 <script>
   import { VENUE, MAX_SEATS_PER_BOOKING, FREE_DAYS, seatLabel, STAGE } from '../data/seating';
+  import { yandexMetricaId } from '../data/site';
+
+  // Цель для Яндекс.Директа/Метрики: сама бронь — основная конверсия сайта,
+  // остальные шаги воронки (посещение /bilety, открытие формы) размечать
+  // отдельно не нужно — это уже обычные URL/клик-цели без кода, настраиваются
+  // в интерфейсе Метрики.
+  function reportBookingGoal() {
+    const ym = (window as unknown as { ym?: (...args: unknown[]) => void }).ym;
+    if (yandexMetricaId && typeof ym === 'function') {
+      ym(yandexMetricaId, 'reachGoal', 'booking_success');
+    }
+  }
 
   const SVG_NS = 'http://www.w3.org/2000/svg';
   const COLOR = {
@@ -410,6 +422,8 @@ const initialDay = FREE_DAYS.some((d) => d.value === requestedDay) ? requestedDa
         }
         return;
       }
+
+      reportBookingGoal();
 
       lastPdf = { base64: data.pdfBase64, fileName: data.pdfFileName };
       successBookingIdEl.textContent = `№ ${data.bookingId}`;

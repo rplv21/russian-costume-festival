@@ -1,6 +1,38 @@
 ---
+// Читаем список файлов из public/gallery — доступно только на этапе сборки
+// (в проде public/ не попадает в финальный образ), поэтому страница должна
+// быть статической (см. тот же приём в src/pages/proshedshie/2024.astro).
+export const prerender = true;
+
+import fs from 'node:fs';
+import path from 'node:path';
 import Layout from '../layouts/Layout.astro';
-import { festival, programme, contacts } from '../data/site';
+import { festival, programme, contacts, pastFestivals } from '../data/site';
+
+const lastFestival = pastFestivals[0];
+const lastGalleryDir = lastFestival ? path.resolve(`public/gallery/${lastFestival.slug}/thumb`) : null;
+const lastGalleryFiles =
+  lastGalleryDir && fs.existsSync(lastGalleryDir)
+    ? fs.readdirSync(lastGalleryDir).filter((f) => f.toLowerCase().endsWith('.jpg')).sort()
+    : [];
+
+// Перемешиваем один раз на этапе сборки: витрина показывает не первые файлы
+// по алфавиту, а вразброс. PREVIEW_COUNT фото видно сразу, остальные —
+// пул, из которого плитки на клиенте по очереди подтягивают следующий кадр.
+function shuffle<T>(arr: T[]): T[] {
+  const out = [...arr];
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+const PREVIEW_COUNT = 8;
+const shuffledPhotoPool = lastFestival
+  ? shuffle(lastGalleryFiles.map((name) => `/gallery/${lastFestival!.slug}/thumb/${name}`))
+  : [];
+const previewPhotos = shuffledPhotoPool.slice(0, PREVIEW_COUNT);
 ---
 
 <Layout
@@ -26,6 +58,25 @@ import { festival, programme, contacts } from '../data/site';
       </div>
     ))}
   </section>
+
+  {previewPhotos.length > 0 && lastFestival && (
+    <section class="section container past-festival">
+      <div class="section-head">
+        <h2>Как это было в {lastFestival.year} году</h2>
+      </div>
+      <div class="past-photo-grid" id="past-photo-grid">
+        {previewPhotos.map((src, i) => (
+          <div class="past-photo" data-index={i}>
+            <img src={src} alt={`Русский костюм ${lastFestival.year} — фото ${i + 1}`} loading="lazy" />
+          </div>
+        ))}
+      </div>
+      <a href={`/proshedshie/${lastFestival.slug}`} class="btn btn-outline past-photo-link">
+        Смотреть все фото фестиваля {lastFestival.year}
+      </a>
+      <script type="application/json" id="past-photo-pool" is:inline set:html={JSON.stringify(shuffledPhotoPool)} />
+    </section>
+  )}
 
   <section class="section container">
     <div class="section-head">
@@ -90,6 +141,48 @@ import { festival, programme, contacts } from '../data/site';
   </section>
 </Layout>
 
+<script>
+  // Витрина фото прошлого фестиваля раз в 7 секунд листает все плитки разом —
+  // веерной волной слева направо (как "волна" на стадионе): каждая следующая
+  // плитка размывается чуть позже предыдущей, под размытием подменяется
+  // фото, затем резкость возвращается — в той же последовательности.
+  const grid = document.getElementById('past-photo-grid');
+  const poolEl = document.getElementById('past-photo-pool');
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  if (grid && poolEl && !prefersReducedMotion) {
+    const pool = JSON.parse(poolEl.textContent || '[]') as string[];
+    const tiles = Array.from(grid.querySelectorAll<HTMLElement>('.past-photo'));
+    const nextIndexByTile = tiles.map((_, i) => i + tiles.length);
+
+    const CYCLE_MS = 7000;
+    const WAVE_STEP_MS = 110; // задержка волны между соседними плитками
+
+    function runWave() {
+      if (pool.length <= tiles.length) return;
+      tiles.forEach((tile, i) => {
+        const img = tile.querySelector('img');
+        if (!img) return;
+        const delay = i * WAVE_STEP_MS;
+
+        setTimeout(() => {
+          tile.classList.add('is-changing');
+        }, delay);
+        setTimeout(() => {
+          img.src = pool[nextIndexByTile[i] % pool.length];
+          nextIndexByTile[i] += tiles.length;
+        }, delay + 320);
+        setTimeout(() => {
+          tile.classList.remove('is-changing');
+        }, delay + 420);
+      });
+    }
+
+    setInterval(runWave, CYCLE_MS);
+    setTimeout(runWave, 2500);
+  }
+</script>
+
 <style>
   .hero {
     padding-block: clamp(64px, 10vw, 120px) clamp(40px, 6vw, 64px);
@@ -144,6 +237,35 @@ import { festival, programme, contacts } from '../data/site';
   .day-btn {
     padding: 10px 20px;
     font-size: 0.85rem;
+  }
+
+  .past-photo-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .past-photo {
+    position: relative;
+    border-radius: var(--radius-card);
+    overflow: hidden;
+    aspect-ratio: 1;
+    background: var(--color-surface);
+  }
+  .past-photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    filter: blur(0);
+    transition: filter 0.4s ease;
+  }
+  .past-photo.is-changing img {
+    filter: blur(14px);
+    transition-duration: 0.32s;
+  }
+  .past-photo-link {
+    display: inline-block;
   }
 
   .section-head h2 {
@@ -229,12 +351,18 @@ import { festival, programme, contacts } from '../data/site';
     .nav-cards {
       grid-template-columns: 1fr 1fr;
     }
+    .past-photo-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
   }
   @media (max-width: 600px) {
     .days,
     .programme,
     .nav-cards {
       grid-template-columns: 1fr;
+    }
+    .past-photo-grid {
+      grid-template-columns: repeat(2, 1fr);
     }
   }
 </style>

@@ -47,8 +47,17 @@ const currentPath = Astro.url.pathname;
 
 <style>
   .site-header {
-    position: sticky;
+    /* Раньше был position:sticky, но iOS Safari игнорирует touch-action и
+       overscroll-behavior для "резинового" отскока всей страницы и слушается
+       только overflow-x на html/body — а его нельзя ставить, пока шапка
+       sticky (см. global.css). position:fixed не зависит от overflow предков
+       вообще, поэтому overflow-x:hidden на body теперь безопасен. Высота
+       шапки при этом больше не занимает место в потоке — компенсируем через
+       padding-top на .page-content, используя ту же переменную --header-h. */
+    position: fixed;
     top: 0;
+    left: 0;
+    right: 0;
     z-index: 50;
     background: rgba(22, 33, 61, 0.88);
     backdrop-filter: blur(8px);
@@ -184,9 +193,9 @@ const currentPath = Astro.url.pathname;
     .main-nav {
       display: none;
       position: fixed;
-      inset: 68px 0 0 0;
-      height: calc(100vh - 68px);
-      height: calc(100dvh - 68px);
+      inset: var(--header-h) 0 0 0;
+      height: calc(100vh - var(--header-h));
+      height: calc(100dvh - var(--header-h));
       background: var(--color-canvas);
       flex-direction: column;
       align-items: flex-start;
@@ -225,4 +234,19 @@ const currentPath = Astro.url.pathname;
     const isOpen = nav?.classList.toggle('open');
     toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
   });
+
+  // Шапка теперь position:fixed (не занимает место в потоке) — измеряем её
+  // реальную высоту и подставляем как --header-h, чтобы .page-content
+  // (padding-top) и мобильное меню (inset) не перекрывались и не давали
+  // лишний зазор. Пересчитываем при ресайзе/повороте и смене шрифта.
+  const header = document.querySelector('.site-header') as HTMLElement | null;
+  function syncHeaderHeight() {
+    if (!header) return;
+    document.documentElement.style.setProperty('--header-h', `${header.getBoundingClientRect().height}px`);
+  }
+  syncHeaderHeight();
+  window.addEventListener('resize', syncHeaderHeight);
+  if ('fonts' in document) {
+    (document as Document & { fonts: FontFaceSet }).fonts.ready.then(syncHeaderHeight);
+  }
 </script>

@@ -28,6 +28,11 @@
   --section-gap: 104px;
   --section-gap-m: 56px;
 
+  /* Реальная высота шапки (position:fixed) выставляется в JS (Header.astro)
+     сразу после её отрисовки — тут только запасное значение на случай,
+     если скрипт ещё не отработал (первый кадр до layout). */
+  --header-h: 76px;
+
   /* Шрифты */
   --font-display: 'Druzhok', 'Playfair Display', Georgia, serif;
   --font-body: 'Montserrat', ui-sans-serif, system-ui, -apple-system, sans-serif;

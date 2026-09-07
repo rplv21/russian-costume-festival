@@ -52,6 +52,15 @@ body {
   overscroll-behavior-x: none;
 }
 
+/* Оборачивает <main>+<Footer> (см. Layout.astro) — не html/body, поэтому не
+   ломает position:sticky у шапки (шапка вне этого блока). Высота у обычного
+   div всегда равна высоте его содержимого, так что "запасной" overflow-y:auto,
+   который браузер выставляет в паре к overflow-x, никогда не сработает —
+   вертикальный скролл страницы устроен как раньше. */
+.page-content {
+  overflow-x: hidden;
+}
+
 h1,
 h2,
 h3 {

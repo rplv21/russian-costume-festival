@@ -86,9 +86,14 @@ const eventSchema = {
     <a href="#main" class="sr-only">Перейти к содержимому</a>
     {!hideDoll && <DollScroller />}
     <Header />
-    <main id="main">
-      <slot />
-    </main>
-    <Footer />
+    {/* overflow-x:hidden здесь, а не на html/body — так шапка выше остаётся
+        position:sticky к вьюпорту (см. комментарий в global.css), а любой
+        случайно вылезший вширь элемент внутри контента просто обрезается. */}
+    <div class="page-content">
+      <main id="main">
+        <slot />
+      </main>
+      <Footer />
+    </div>
   </body>
 </html>

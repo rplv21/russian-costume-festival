@@ -453,8 +453,10 @@ import PrivacyContent from './PrivacyContent.astro';
   }
   .badges-col {
     flex: none;
+    max-width: 100%;
     margin-left: auto;
     display: flex;
+    flex-wrap: wrap;
     align-items: flex-end;
     gap: 24px;
   }
@@ -467,7 +469,17 @@ import PrivacyContent from './PrivacyContent.astro';
   .pushkin-card img {
     height: 100%;
     width: auto;
+    max-width: 100%;
     object-fit: contain;
+  }
+  /* На узких экранах два лого высотой 96px в сумме шире контейнера — раньше
+     они просто вылезали за край (были доступны горизонтальным скроллом,
+     которого больше нет), поэтому уменьшаем высоту, чтобы оба помещались
+     в ряд; flex-wrap выше — подстраховка, если места всё равно не хватит. */
+  @media (max-width: 640px) {
+    .pushkin-card {
+      height: 56px;
+    }
   }
 
   .footer-bottom {

@@ -19,7 +19,7 @@ export const onRequest: MiddlewareHandler = async (_context, next) => {
       "style-src 'self' 'unsafe-inline'",
       "script-src 'self' 'unsafe-inline' https://mc.yandex.ru https://widget.afisha.yandex.ru",
       "connect-src 'self' https://mc.yandex.ru wss://mc.yandex.ru",
-      "frame-src https://mc.yandex.ru",
+      "frame-src https://mc.yandex.ru https://widget.afisha.yandex.ru",
       "font-src 'self'",
       "frame-ancestors 'none'",
       "base-uri 'self'",

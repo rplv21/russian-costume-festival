@@ -21,38 +21,6 @@ import SeatMap from '../components/SeatMap.astro';
   </section>
 </Layout>
 
-<script is:inline>
-  /* Виджет билетного оператора (Яндекс Афиша) — вставлен как есть, по
-     инструкции менеджера оператора. Не трогать без согласования с ним:
-     dealerName/clientKey/widget id привязаны к конкретному событию. */
-  var dealerName = 'YandexTicketsDealer';
-  var dealer = window[dealerName] = window[dealerName] || [];
-
-  dealer.push(['setDefaultClientKey', '220bf208-120e-4ee2-b089-7cc1e7a7462f']);
-  dealer.push(['setDefaultRegionId', 16]);
-
-  YandexTicketsDealer.push(['getDealer', function (dealer) {
-    const widget = dealer.Widget('ticketsteam-681@63426795', 'session', {
-      target: document.getElementById('ya-widget-frame'),
-      onRequestClose: function() {
-        widget.unmount();
-        widget.destroy();
-      },
-    });
-
-    widget.mount({ style: { height: '600px' } });
-  }]);
-
-  (function () {
-    var rnd = '?' + new Date().getTime() * Math.random();
-    var script = document.createElement('script');
-    var target = document.getElementsByTagName('script')[0];
-    script.async = true;
-    script.src = 'https://widget.afisha.yandex.ru/dealer/dealer.js' + rnd;
-    target.parentNode.insertBefore(script, target);
-  })();
-</script>
-
 <style>
   .lede {
     max-width: 68ch;

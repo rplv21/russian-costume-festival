@@ -21,7 +21,14 @@ const initialDay = FREE_DAYS.some((d) => d.value === requestedDay) ? requestedDa
       18 октября — платный день фестиваля. Билеты продаёт официальный билетный оператор,
       бронирование и оплата — прямо здесь.
     </p>
-    <div id="ya-widget-frame"></div>
+    <iframe
+      id="ya-widget-frame"
+      title="Билеты на гала-концерт"
+      src="https://widget.afisha.yandex.ru/w/sessions/ticketsteam-681@63426795?clientKey=220bf208-120e-4ee2-b089-7cc1e7a7462f&regionId=16"
+      loading="lazy"
+      allow="clipboard-read; clipboard-write"
+      sandbox="allow-forms allow-modals allow-popups allow-scripts allow-same-origin allow-top-navigation allow-popups-to-escape-sandbox allow-storage-access-by-user-activation allow-downloads"
+    ></iframe>
     <p class="gala-fallback">
       Если виджет выше не открылся — билеты можно купить{' '}
       <a
@@ -636,9 +643,13 @@ const initialDay = FREE_DAYS.some((d) => d.value === requestedDay) ? requestedDa
     color: var(--color-ink-muted);
   }
   #ya-widget-frame {
+    display: block;
+    width: 100%;
     max-width: 640px;
+    height: 600px;
     margin-inline: auto;
-    text-align: left;
+    border: none;
+    border-radius: var(--radius-card);
   }
   .gala-fallback {
     margin-top: 20px;

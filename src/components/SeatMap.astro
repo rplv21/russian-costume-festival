@@ -1,5 +1,6 @@
 ---
 import { FREE_DAYS, MAX_SEATS_PER_BOOKING, VIEWBOX } from '../data/seating';
+import { contacts } from '../data/site';
 
 const requestedDay = Astro.url.searchParams.get('day');
 const initialDay = FREE_DAYS.some((d) => d.value === requestedDay) ? requestedDay : FREE_DAYS[0].value;
@@ -12,9 +13,28 @@ const initialDay = FREE_DAYS.some((d) => d.value === requestedDay) ? requestedDa
         {d.label}
       </button>
     ))}
+    <button type="button" class="day-tab" id="gala-tab" aria-selected="false">18 октября — Гала-концерт</button>
   </div>
 
-  <div class="map-frame">
+  <div class="gala-panel" id="gala-panel" hidden>
+    <p class="gala-note">
+      18 октября — платный день фестиваля. Билеты продаёт официальный билетный оператор,
+      бронирование и оплата — прямо здесь.
+    </p>
+    <div id="ya-widget-frame"></div>
+    <p class="gala-fallback">
+      Если виджет не загрузился — билеты также можно купить на{' '}
+      <a href="https://yar-show.ru/events/shou/russkiy-kostyum/" target="_blank" rel="noopener">
+        странице билетного оператора
+      </a>.
+    </p>
+    <div class="gala-contacts">
+      <a href={contacts.orgPhoneHref} class="btn btn-outline">{contacts.orgPhone}</a>
+      <a href={contacts.vk.festival} target="_blank" rel="noopener" class="btn btn-outline">Новости в VK</a>
+    </div>
+  </div>
+
+  <div class="map-frame" id="map-frame">
     <div class="map-toolbar">
       <div class="legend">
         <span class="legend-item"><i class="dot dot-available"></i>Свободно</span>
@@ -40,7 +60,7 @@ const initialDay = FREE_DAYS.some((d) => d.value === requestedDay) ? requestedDa
     <button type="button" class="btn btn-red" id="open-booking-btn">Забронировать</button>
   </div>
 
-  <p class="hint">Один пользователь может забронировать не более {MAX_SEATS_PER_BOOKING} билетов одновременно. Вход бесплатный, места распределяются по факту бронирования.</p>
+  <p class="hint" id="booking-hint">Один пользователь может забронировать не более {MAX_SEATS_PER_BOOKING} билетов одновременно. Вход бесплатный, места распределяются по факту бронирования.</p>
 </div>
 
 <!-- Модальное окно 1: контактные данные -->
@@ -140,7 +160,11 @@ const initialDay = FREE_DAYS.some((d) => d.value === requestedDay) ? requestedDa
   const zoomInBtn = document.getElementById('zoom-in-btn') as HTMLButtonElement;
   const zoomOutBtn = document.getElementById('zoom-out-btn') as HTMLButtonElement;
   const zoomLevelEl = document.getElementById('zoom-level') as HTMLElement;
-  const dayTabs = Array.from(document.querySelectorAll<HTMLButtonElement>('.day-tab'));
+  const dayTabs = Array.from(document.querySelectorAll<HTMLButtonElement>('.day-tab[data-day]'));
+  const galaTab = document.getElementById('gala-tab') as HTMLButtonElement;
+  const galaPanel = document.getElementById('gala-panel') as HTMLElement;
+  const mapFrame = document.getElementById('map-frame') as HTMLElement;
+  const bookingHint = document.getElementById('booking-hint') as HTMLElement;
   const selectionBar = document.getElementById('selection-bar') as HTMLElement;
   const selectionCountEl = document.getElementById('selection-count') as HTMLElement;
   const selectionChipsEl = document.getElementById('selection-chips') as HTMLElement;
@@ -308,15 +332,43 @@ const initialDay = FREE_DAYS.some((d) => d.value === requestedDay) ? requestedDa
     applyStates();
   }
 
+  function showGalaPanel() {
+    galaTab.setAttribute('aria-selected', 'true');
+    dayTabs.forEach((t) => t.setAttribute('aria-selected', 'false'));
+    mapFrame.hidden = true;
+    bookingHint.hidden = true;
+    selectionBar.hidden = true;
+    galaPanel.hidden = false;
+  }
+
+  function showDayPanel(tab: HTMLButtonElement) {
+    currentDay = tab.dataset.day as string;
+    dayTabs.forEach((t) => t.setAttribute('aria-selected', t === tab ? 'true' : 'false'));
+    galaTab.setAttribute('aria-selected', 'false');
+    galaPanel.hidden = true;
+    mapFrame.hidden = false;
+    bookingHint.hidden = false;
+    selectedSeatIds = [];
+    loadAvailability();
+  }
+
   dayTabs.forEach((tab) => {
     tab.addEventListener('click', () => {
-      if (tab.dataset.day === currentDay) return;
-      currentDay = tab.dataset.day as string;
-      dayTabs.forEach((t) => t.setAttribute('aria-selected', t === tab ? 'true' : 'false'));
-      selectedSeatIds = [];
-      loadAvailability();
+      if (tab.dataset.day === currentDay && galaPanel.hidden) return;
+      showDayPanel(tab);
     });
   });
+
+  galaTab.addEventListener('click', () => {
+    if (!galaPanel.hidden) return;
+    selectedSeatIds = [];
+    applyStates();
+    showGalaPanel();
+  });
+
+  if (window.location.hash === '#gala') {
+    showGalaPanel();
+  }
 
   function openModal(modal: HTMLElement) {
     modal.hidden = false;
@@ -566,6 +618,38 @@ const initialDay = FREE_DAYS.some((d) => d.value === requestedDay) ? requestedDa
     background: var(--color-surface);
     border-radius: var(--radius-card);
     padding: 20px clamp(12px, 3vw, 28px) 8px;
+  }
+
+  .gala-panel {
+    background: var(--color-surface);
+    border-radius: var(--radius-card);
+    padding: clamp(24px, 4vw, 40px) clamp(16px, 4vw, 40px);
+    text-align: center;
+  }
+  .gala-note {
+    max-width: 60ch;
+    margin: 0 auto 20px;
+    color: var(--color-ink-muted);
+  }
+  #ya-widget-frame {
+    max-width: 640px;
+    margin-inline: auto;
+    text-align: left;
+  }
+  .gala-fallback {
+    margin-top: 20px;
+    color: var(--color-ink-muted);
+    font-size: 0.9rem;
+  }
+  .gala-fallback a {
+    color: var(--color-red);
+  }
+  .gala-contacts {
+    margin-top: 16px;
+    display: flex;
+    gap: 14px;
+    justify-content: center;
+    flex-wrap: wrap;
   }
   .map-toolbar {
     display: flex;

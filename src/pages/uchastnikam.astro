@@ -4,13 +4,6 @@ import { participation, participatingRegions, contacts, documents, nominations }
 
 const applicationDocs = documents.filter((d) => d.format === 'DOCX');
 const polozhenie = documents.find((d) => d.title === 'Положение о фестивале');
-
-let regionNumber = 1;
-const regionGroups = participatingRegions.groups.map((g) => {
-  const start = regionNumber;
-  regionNumber += g.items.length;
-  return { ...g, start };
-});
 ---
 
 <Layout
@@ -24,7 +17,7 @@ const regionGroups = participatingRegions.groups.map((g) => {
   </section>
 
   <section class="section container regions-section">
-    <h2>Регионы-участники</h2>
+    <h2>Субъекты-участники</h2>
     <div class="regions-stats">
       <div class="stat">
         <span class="stat-num">{participatingRegions.stats.regionsCount}</span>
@@ -39,15 +32,10 @@ const regionGroups = participatingRegions.groups.map((g) => {
         <span class="stat-label">участников</span>
       </div>
     </div>
-    <div class="regions-groups">
-      {regionGroups.map((g) => (
-        <div class="region-group">
-          <h3>{g.title}</h3>
-          <ol start={g.start}>
-            {g.items.map((item) => <li>{item}</li>)}
-          </ol>
-        </div>
-      ))}
+    <div class="regions-panel">
+      <ol class="region-list">
+        {participatingRegions.names.map((name) => <li>{name}</li>)}
+      </ol>
     </div>
   </section>
 
@@ -313,24 +301,22 @@ const regionGroups = participatingRegions.groups.map((g) => {
     color: var(--color-text-muted);
   }
 
-  .regions-groups {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 28px;
+  .regions-panel {
+    background: var(--color-surface);
+    border-radius: var(--radius-card);
+    padding: clamp(24px, 4vw, 40px);
   }
-  .region-group h3 {
-    font-size: 1rem;
-    color: var(--color-heading);
-    margin-bottom: 10px;
-  }
-  .region-group ol {
+  .region-list {
+    column-count: 4;
+    column-gap: 32px;
     margin: 0;
     padding-left: 20px;
-    color: var(--color-text-muted);
+    color: var(--color-ink-muted);
     font-size: 0.92rem;
   }
-  .region-group li {
-    margin-bottom: 6px;
+  .region-list li {
+    break-inside: avoid;
+    margin-bottom: 8px;
   }
 
   .nom-list {
@@ -357,17 +343,22 @@ const regionGroups = participatingRegions.groups.map((g) => {
   }
 
   @media (max-width: 1000px) {
-    .regions-groups {
-      grid-template-columns: repeat(2, 1fr);
+    .region-list {
+      column-count: 2;
     }
   }
 
   @media (max-width: 800px) {
     .docs-grid,
     .two-col,
-    .nom-list,
-    .regions-groups {
+    .nom-list {
       grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .region-list {
+      column-count: 1;
     }
   }
 </style>

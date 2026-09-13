@@ -19,7 +19,7 @@ export const festival = {
     { date: '18 октября', title: 'Гала-концерт', ticketsHref: '/bilety#gala' },
   ],
   organizers: [
-    'Министерство культуры Ярославской области',
+    'Министерство культуры и туризма Ярославской области',
     'ГУК ЯО «Областной Дом народного творчества»',
   ],
   venues: [
@@ -201,14 +201,9 @@ export const partners = [
     logo: '/logos/yaodnt.png',
   },
   {
-    name: 'Министерство культуры Ярославской области',
+    name: 'Министерство культуры и туризма Ярославской области',
     url: 'https://portal.yarregion.ru/depts-dcul/',
     logo: '/logos/gerb-yao.svg',
-  },
-  {
-    name: 'Министерство культуры Российской Федерации',
-    url: 'https://culture.gov.ru',
-    logo: '/logos/minkult-rf.png',
   },
 ] as const;
 

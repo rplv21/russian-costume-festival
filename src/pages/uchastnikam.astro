@@ -1,9 +1,16 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import { participation, contacts, documents, nominations } from '../data/site';
+import { participation, participatingRegions, contacts, documents, nominations } from '../data/site';
 
 const applicationDocs = documents.filter((d) => d.format === 'DOCX');
 const polozhenie = documents.find((d) => d.title === 'Положение о фестивале');
+
+let regionNumber = 1;
+const regionGroups = participatingRegions.groups.map((g) => {
+  const start = regionNumber;
+  regionNumber += g.items.length;
+  return { ...g, start };
+});
 ---
 
 <Layout
@@ -14,6 +21,34 @@ const polozhenie = documents.find((d) => d.title === 'Положение о фе
     <p class="eyebrow">Участникам</p>
     <h1>Как принять участие</h1>
     <p class="lede">{participation.whoCanApply}</p>
+  </section>
+
+  <section class="section container regions-section">
+    <h2>Регионы-участники</h2>
+    <div class="regions-stats">
+      <div class="stat">
+        <span class="stat-num">{participatingRegions.stats.regionsCount}</span>
+        <span class="stat-label">регион России</span>
+      </div>
+      <div class="stat">
+        <span class="stat-num">{participatingRegions.stats.collectionsCount}</span>
+        <span class="stat-label">уникальных коллекций</span>
+      </div>
+      <div class="stat">
+        <span class="stat-num">{participatingRegions.stats.participantsCount}</span>
+        <span class="stat-label">участников</span>
+      </div>
+    </div>
+    <div class="regions-groups">
+      {regionGroups.map((g) => (
+        <div class="region-group">
+          <h3>{g.title}</h3>
+          <ol start={g.start}>
+            {g.items.map((item) => <li>{item}</li>)}
+          </ol>
+        </div>
+      ))}
+    </div>
   </section>
 
   <section class="section container" id="kak-podat">
@@ -256,6 +291,48 @@ const polozhenie = documents.find((d) => d.title === 'Положение о фе
     margin-bottom: 8px;
   }
 
+  .regions-stats {
+    display: flex;
+    gap: clamp(24px, 5vw, 56px);
+    flex-wrap: wrap;
+    margin: 24px 0 36px;
+  }
+  .stat {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .stat-num {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 5vw, 2.8rem);
+    color: var(--color-red);
+    line-height: 1;
+  }
+  .stat-label {
+    font-size: 0.9rem;
+    color: var(--color-text-muted);
+  }
+
+  .regions-groups {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 28px;
+  }
+  .region-group h3 {
+    font-size: 1rem;
+    color: var(--color-heading);
+    margin-bottom: 10px;
+  }
+  .region-group ol {
+    margin: 0;
+    padding-left: 20px;
+    color: var(--color-text-muted);
+    font-size: 0.92rem;
+  }
+  .region-group li {
+    margin-bottom: 6px;
+  }
+
   .nom-list {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -279,10 +356,17 @@ const polozhenie = documents.find((d) => d.title === 'Положение о фе
     color: var(--color-blue);
   }
 
+  @media (max-width: 1000px) {
+    .regions-groups {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
   @media (max-width: 800px) {
     .docs-grid,
     .two-col,
-    .nom-list {
+    .nom-list,
+    .regions-groups {
       grid-template-columns: 1fr;
     }
   }

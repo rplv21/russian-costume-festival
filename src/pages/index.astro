@@ -77,7 +77,11 @@ const previewPhotos = shuffledPhotoPool.slice(0, PREVIEW_COUNT);
             <span class="schedule-time">{ev.time}</span>
             <div class="schedule-body">
               <span class="schedule-title">{ev.title}</span>
-              {'desc' in ev && <span class="schedule-desc">{ev.desc}</span>}
+              {'desc' in ev && (
+                <span class="schedule-desc">
+                  {ev.desc.map((line) => <span class="schedule-desc-line">{line}</span>)}
+                </span>
+              )}
             </div>
           </li>
         ))}
@@ -338,6 +342,9 @@ const previewPhotos = shuffledPhotoPool.slice(0, PREVIEW_COUNT);
   .schedule-desc {
     color: var(--color-ink-muted);
     font-size: 0.9rem;
+  }
+  .schedule-desc-line {
+    display: block;
   }
 
   .past-photo-grid {

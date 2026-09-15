@@ -7,7 +7,7 @@ export const prerender = true;
 import fs from 'node:fs';
 import path from 'node:path';
 import Layout from '../layouts/Layout.astro';
-import { festival, programme, contacts, pastFestivals } from '../data/site';
+import { festival, programme, schedule, contacts, pastFestivals } from '../data/site';
 
 const lastFestival = pastFestivals[0];
 const lastGalleryDir = lastFestival ? path.resolve(`public/gallery/${lastFestival.slug}/thumb`) : null;
@@ -56,6 +56,32 @@ const previewPhotos = shuffledPhotoPool.slice(0, PREVIEW_COUNT);
         <span class="day-title">{day.title}</span>
         <a href={day.ticketsHref} class="btn btn-red day-btn">Билеты</a>
       </div>
+    ))}
+  </section>
+
+  <section class="section container schedule-section">
+    <div class="section-head">
+      <h2>Программа фестиваля</h2>
+    </div>
+    <div class="schedule-tabs" role="tablist" aria-label="Выберите день программы">
+      {schedule.map((day, i) => (
+        <button type="button" class="schedule-tab" data-day-index={i} aria-selected={i === 0 ? 'true' : 'false'}>
+          {day.date}
+        </button>
+      ))}
+    </div>
+    {schedule.map((day, i) => (
+      <ul class="schedule-list" data-day-panel={i} hidden={i !== 0}>
+        {day.events.map((ev) => (
+          <li class="schedule-row">
+            <span class="schedule-time">{ev.time}</span>
+            <div class="schedule-body">
+              <span class="schedule-title">{ev.title}</span>
+              {'desc' in ev && <span class="schedule-desc">{ev.desc}</span>}
+            </div>
+          </li>
+        ))}
+      </ul>
     ))}
   </section>
 
@@ -140,6 +166,22 @@ const previewPhotos = shuffledPhotoPool.slice(0, PREVIEW_COUNT);
     </div>
   </section>
 </Layout>
+
+<script>
+  // Переключение дней в программе фестиваля.
+  const scheduleTabs = Array.from(document.querySelectorAll<HTMLButtonElement>('.schedule-tab'));
+  const schedulePanels = Array.from(document.querySelectorAll<HTMLElement>('[data-day-panel]'));
+
+  scheduleTabs.forEach((tab) => {
+    tab.addEventListener('click', () => {
+      const index = tab.dataset.dayIndex;
+      scheduleTabs.forEach((t) => t.setAttribute('aria-selected', t === tab ? 'true' : 'false'));
+      schedulePanels.forEach((panel) => {
+        panel.hidden = panel.dataset.dayPanel !== index;
+      });
+    });
+  });
+</script>
 
 <script>
   // Витрина фото прошлого фестиваля раз в 7 секунд листает все плитки разом —
@@ -237,6 +279,65 @@ const previewPhotos = shuffledPhotoPool.slice(0, PREVIEW_COUNT);
   .day-btn {
     padding: 10px 20px;
     font-size: 0.85rem;
+  }
+
+  .schedule-tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .schedule-tab {
+    font-family: var(--font-body);
+    font-size: 0.88rem;
+    font-weight: 600;
+    padding: 10px 20px;
+    border-radius: var(--radius-button);
+    border: 2px solid var(--color-card-border);
+    background: var(--color-surface);
+    color: var(--color-ink-muted);
+    cursor: pointer;
+    transition: border-color 0.15s ease, color 0.15s ease;
+  }
+  .schedule-tab[aria-selected='true'] {
+    border-color: var(--color-red);
+    color: var(--color-red);
+  }
+  .schedule-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    background: var(--color-surface);
+    border-radius: var(--radius-card);
+    overflow: hidden;
+  }
+  .schedule-row {
+    display: flex;
+    gap: 24px;
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--color-card-border);
+  }
+  .schedule-row:last-child {
+    border-bottom: none;
+  }
+  .schedule-time {
+    flex: none;
+    width: 108px;
+    font-weight: 700;
+    color: var(--color-blue);
+  }
+  .schedule-body {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .schedule-title {
+    color: var(--color-ink);
+    font-weight: 600;
+  }
+  .schedule-desc {
+    color: var(--color-ink-muted);
+    font-size: 0.9rem;
   }
 
   .past-photo-grid {
@@ -363,6 +464,13 @@ const previewPhotos = shuffledPhotoPool.slice(0, PREVIEW_COUNT);
     }
     .past-photo-grid {
       grid-template-columns: repeat(2, 1fr);
+    }
+    .schedule-row {
+      flex-direction: column;
+      gap: 6px;
+    }
+    .schedule-time {
+      width: auto;
     }
   }
 </style>
